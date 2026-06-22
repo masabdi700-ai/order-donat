@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Order Donat v5 (Online)</title>
+    
+    <!-- MENGHUBUNGKAN KE FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root { --primary: #d2691e; --secondary: #ffb6c1; --bg: #fdf5e6; --text: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 15px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; margin-bottom: 20px; gap: 10px; }
+        .header h1 { font-size: 24px; margin: 0; }
+        h1, h2, h3 { color: var(--primary); margin-top: 0;}
+        button { background-color: var(--primary); color: white; border: none; padding: 12px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; }
+        button:hover { background-color: #a0522d; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .btn-admin { background-color: #555; padding: 8px 14px; font-size: 13px; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-success { background-color: #28a745; }
+        .btn-print { background-color: #28a745; font-size: 13px; padding: 8px 12px; }
+        .btn-print-batch { background-color: #007bff; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 15px; }
+        input[type="number"], input[type="text"], input[type="password"], select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .step-box { background-color: #fffaf0; border: 1px solid var(--primary); padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: start; }
+        .custom-input { display: none; margin-top: 10px; }
+        .cart-list { list-style: none; padding: 0; margin: 0 0 15px 0; }
+        .cart-item { background: var(--secondary); padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 14px; }
+        #modal-nama { display: none; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
+        .modal-content input { margin-bottom: 15px; }
+        #admin-area { display: none; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 15px; border: 1px solid #ddd; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 500px; }
+        table, th, td { border: none; }
+        th, td { padding: 12px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--secondary); color: #333; font-weight: bold; }
+        .check-center { text-align: center; vertical-align: middle; width: 40px;}
+        #login-area { display: none; text-align: center; padding: 20px 0; }
+        #login-area input { max-width: 300px; margin: 0 auto 15px auto; display: block; }
+        .mgmt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .mgmt-box { border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #fafafa; }
+        .mgmt-list { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #eee; background: white; padding: 5px; border-radius: 6px; }
+        .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 5px; border-bottom: 1px solid #eee; font-size: 14px; }
+        #print-receipt { display: none; }
+
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .container { padding: 15px; border-radius: 8px; }
+            .header h1 { font-size: 20px; }
+            .options-grid { grid-template-columns: 1fr; gap: 10px; }
+            .mgmt-grid { grid-template-columns: 1fr; gap: 15px; }
+            .btn-admin { padding: 6px 10px; font-size: 12px; }
+            button { width: 100%; text-align: center; justify-content: center; }
+            .btn-print { width: auto; }
+            .check-center input { transform: scale(1.2); }
+            .admin-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+            .admin-actions button { margin-bottom: 0 !important; }
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #print-receipt, #print-receipt * { visibility: visible; }
+            #print-receipt { display: block; position: absolute; left: 0; top: 0; width: 58mm; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: black; padding: 0; margin: 0; }
+            .struk-satuan { page-break-after: auto; padding-bottom: 10px; margin-bottom: 10px; }
+            .garis-potong { text-align: center; border-bottom: 1px dashed black; margin: 15px 0; font-size: 10px; }
+            @page { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <div class="header">
+        <h1 id="page-title">Menu Donat</h1>
+        <button class="btn-admin" id="btn-toggle-admin" onclick="toggleAdminLogin()">Login Admin</button>
+    </div>
+
+    <!-- PELANGGAN -->
+    <div id="customer-area">
+        <div class="step-box">
+            <h3>Langkah 1: Tentukan Jumlah Donat</h3>
+            <div class="options-grid" style="grid-template-columns: auto 1fr; gap: 10px; align-items: center;">
+                <input type="number" id="qty-total" min="1" placeholder="Misal: 6" style="max-width: 120px;">
+                <button id="btn-set-total" onclick="setTotalDonat()">Mulai Pilih Rasa</button>
+            </div>
+            <button id="btn-reset-total" onclick="resetTotalDonat()" style="display:none; background-color:#555; margin-top: 10px; width: 100%;">Ubah Jumlah Total</button>
+        </div>
+
+        <div id="pilih-rasa-area" class="step-box" style="display: none;">
+            <h3>Langkah 2: Pilih Glaze & Topping</h3>
+            <p style="font-size: 16px; margin-top: 0;">Sisa kuota rasa donat: <strong id="text-sisa" style="color: red; font-size: 20px;">0</strong></p>
+            
+            <div id="form-varian">
+                <div class="options-grid">
+                    <div class="form-group">
+                        <label>Pilih Glaze:</label>
+                        <select id="glaze" onchange="checkCustom('glaze')"></select>
+                        <input type="text" id="glaze-custom" class="custom-input" placeholder="Ketik glaze...">
+                    </div>
+                    <div class="form-group">
+                        <label>Pilih Topping:</label>
+                        <select id="topping" onchange="checkCustom('topping')"></select>
+                        <input type="text" id="topping-custom" class="custom-input" placeholder="Ketik topping...">
+                    </div>
+                    <div class="form-group">
+                        <label>Berapa Donat?</label>
+                        <input type="number" id="qty-rasa" min="1" value="1">
+                        <button onclick="tambahVarian()" style="width: 100%; margin-top: 10px; background-color: #28a745;">+ Masukkan Kotak</button>
+                    </div>
+                </div>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px dashed #ccc; margin: 20px 0;">
+            <h3>Donat Dalam Kotak:</h3>
+            <ul id="daftar-keranjang" class="cart-list"></ul>
+            <button id="btn-order-final" style="width: 100%; font-size: 16px; padding: 14px;" onclick="bukaModal()" disabled>Selesaikan Order</button>
+            <p id="pesan-peringatan" style="text-align: center; color: red; font-size: 13px;">Pilih rasa untuk semua donat agar bisa memesan.</p>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal-nama">
+        <div class="modal-content">
+            <h3>Masukkan Nama Anda</h3>
+            <input type="text" id="nama-pemesan" placeholder="Nama Lengkap Pemesan" required>
+            <button id="btn-finish-order" onclick="prosesOrderLengkap()" style="width: 100%;">Finish</button>
+            <button onclick="tutupModal()" style="background-color: #ccc; color: #333; margin-top: 10px; width: 100%;">Batal</button>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-area">
+        <h2>Login Admin</h2>
+        <input type="password" id="password-admin" placeholder="Masukkan Password Admin...">
+        <button onclick="loginAdmin()" style="margin-top: 5px;">Masuk</button>
+        <button onclick="kembaliKeMenu()" style="background-color: #ccc; color: #333; margin-top: 5px;">Kembali</button>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="admin-area">
+        <h2>Daftar Pesanan Masuk</h2>
+        <div class="admin-actions" style="margin-bottom: 15px;">
+            <button onclick="cetakStrukTerpilih()" class="btn-print-batch" style="margin-right: 5px;">🖨️ Cetak Terpilih</button>
+            <button onclick="hapusSemuaPesanan()" class="btn-danger">Bersihkan Semua Pesanan</button>
+        </div>
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="check-center"><input type="checkbox" id="check-all" onclick="toggleCentangSemua()"></th>
+                        <th>Waktu</th>
+                        <th>Nama Pemesan</th>
+                        <th>Detail Rasa & Topping</th>
+                        <th style="width: 60px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabel-pesanan"></tbody>
+            </table>
+        </div>
+
+        <hr style="margin: 30px 0; border-top: 2px solid var(--primary);">
+
+        <h2>⚙️ Pengaturan Pilihan Menu</h2>
+        <p style="margin-top: -10px; font-size: 13px; color: #666;">Otomatis tersimpan online dan langsung muncul di web pelanggan.</p>
+        
+        <div class="mgmt-grid">
+            <div class="mgmt-box">
+                <h3>Kelola Glaze</h3>
+                <ul id="mgmt-glaze-list" class="mgmt-list"></ul>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="new-glaze" placeholder="Glaze baru...">
+                    <button onclick="addMenu('glaze')" class="btn-success" style="padding:0 15px;">+</button>
+                </div>
+            </div>
+            <div class="mgmt-box">
+                <h3>Kelola Topping</h3>
+                <ul id="mgmt-topping-list" class="mgmt-list"></ul>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="new-topping" placeholder="Topping baru...">
+                    <button onclick="addMenu('topping')" class="btn-success" style="padding:0 15px;">+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="print-receipt"></div>
+
+<script>
+    // ==========================================================
+    // === PASTE FIREBASE CONFIG DI BAWAH SINI ===
+    // ==========================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyBDsQxKD1pjUCrDxgrnRMAKxqxTM6NQ5us",
+        authDomain: "order-donat.firebaseapp.com",
+        projectId: "order-donat",
+        storageBucket: "order-donat.firebasestorage.app",
+        messagingSenderId: "551893041327",
+        appId: "1:551893041327:web:31e7a8f58ccf6d1ff8145a"
+    };
+
+    // Inisialisasi Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ==========================================================
+
+    const defaultGlazes = ["Coklat", "Vanila", "Matcha", "Strawberry", "Tiramisu"];
+    const defaultToppings = ["Keju", "Kacang", "Oreo", "Red Velvet", "Marie", "Meses Coklat", "Meses Warna", "Milo", "Sprinkle"];
+
+    let listGlazes = [];
+    let listToppings = [];
+    let dataPesananGlobal = []; // Menyimpan data pesanan dari database
+
+    let totalDonat = 0;
+    let sisaKuota = 0;
+    let keranjangVarian = [];
+
+    // REALTIME DATABASE: Ambil Menu
+    db.collection("pengaturan").doc("menu").onSnapshot((doc) => {
+        if (doc.exists) {
+            listGlazes = doc.data().glazes || defaultGlazes;
+            listToppings = doc.data().toppings || defaultToppings;
+        } else {
+            listGlazes = defaultGlazes; listToppings = defaultToppings;
+            db.collection("pengaturan").doc("menu").set({ glazes: listGlazes, toppings: listToppings });
+        }
+        initMenuOptions();
+        muatManajemenMenu();
+    });
+
+    function initMenuOptions() {
+        let selectGlaze = document.getElementById('glaze');
+        selectGlaze.innerHTML = "";
+        listGlazes.forEach(g => { selectGlaze.innerHTML += `<option value="${g}">${g}</option>`; });
+        selectGlaze.innerHTML += `<option value="Lainnya">Lainnya (Ketik Sendiri)</option>`;
+
+        let selectTopping = document.getElementById('topping');
+        selectTopping.innerHTML = "";
+        listToppings.forEach(t => { selectTopping.innerHTML += `<option value="${t}">${t}</option>`; });
+        selectTopping.innerHTML += `<option value="Lainnya">Lainnya (Ketik Sendiri)</option>`;
+    }
+
+    function checkCustom(type) {
+        let select = document.getElementById(type);
+        let customInput = document.getElementById(type + '-custom');
+        customInput.style.display = (select.value === 'Lainnya') ? 'block' : 'none';
+    }
+
+    function setTotalDonat() {
+        let inputTotal = parseInt(document.getElementById('qty-total').value);
+        if(isNaN(inputTotal) || inputTotal < 1) { alert("Silakan masukkan jumlah donat yang valid."); return; }
+        totalDonat = inputTotal; sisaKuota = inputTotal; keranjangVarian = []; 
+        document.getElementById('qty-total').disabled = true;
+        document.getElementById('btn-set-total').style.display = 'none';
+        document.getElementById('btn-reset-total').style.display = 'block';
+        document.getElementById('pilih-rasa-area').style.display = 'block';
+        updateUI();
+    }
+
+    function resetTotalDonat() {
+        if(keranjangVarian.length > 0) {
+            if(!confirm("Donat yang sudah dipilih rasanya akan dihapus. Yakin?")) return;
+        }
+        totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
+        document.getElementById('qty-total').disabled = false;
+        document.getElementById('qty-total').value = "";
+        document.getElementById('btn-set-total').style.display = 'block';
+        document.getElementById('btn-reset-total').style.display = 'none';
+        document.getElementById('pilih-rasa-area').style.display = 'none';
+    }
+
+    function tambahVarian() {
+        if(sisaKuota <= 0) { alert("Kuota donat sudah habis!"); return; }
+        let qtyRasa = parseInt(document.getElementById('qty-rasa').value);
+        if(isNaN(qtyRasa) || qtyRasa < 1) return;
+        if(qtyRasa > sisaKuota) { alert(`Jumlah melebihi sisa! Sisa donat tinggal ${sisaKuota} pcs.`); return; }
+
+        let glaze = document.getElementById('glaze').value;
+        if (glaze === 'Lainnya') glaze = document.getElementById('glaze-custom').value || 'Tanpa Glaze';
+        let topping = document.getElementById('topping').value;
+        if (topping === 'Lainnya') topping = document.getElementById('topping-custom').value || 'Tanpa Topping';
+
+        keranjangVarian.push({ glaze: glaze, topping: topping, qty: qtyRasa });
+        sisaKuota -= qtyRasa;
+
+        document.getElementById('qty-rasa').value = (sisaKuota > 0) ? sisaKuota : 1; 
+        document.getElementById('glaze').selectedIndex = 0;
+        document.getElementById('topping').selectedIndex = 0;
+        checkCustom('glaze'); checkCustom('topping');
+        updateUI();
+    }
+
+    function hapusVarian(index) {
+        sisaKuota += keranjangVarian[index].qty; 
+        keranjangVarian.splice(index, 1); 
+        document.getElementById('qty-rasa').value = sisaKuota;
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('text-sisa').innerText = sisaKuota;
+        document.getElementById('form-varian').style.display = (sisaKuota === 0) ? 'none' : 'block';
+        
+        let listKeranjang = document.getElementById('daftar-keranjang');
+        listKeranjang.innerHTML = "";
+        if(keranjangVarian.length === 0) {
+            listKeranjang.innerHTML = "<li>Belum ada rasa yang dipilih.</li>";
+        } else {
+            keranjangVarian.forEach((item, index) => {
+                let li = document.createElement('li');
+                li.className = 'cart-item';
+                li.innerHTML = `<span>${item.qty}x Pcs: ${item.glaze} + ${item.topping}</span>
+                                <button class="btn-danger" style="padding: 4px 10px; width:auto;" onclick="hapusVarian(${index})">X</button>`;
+                listKeranjang.appendChild(li);
+            });
+        }
+
+        let btnOrder = document.getElementById('btn-order-final');
+        let pesanPeringatan = document.getElementById('pesan-peringatan');
+        if(sisaKuota === 0 && totalDonat > 0) {
+            btnOrder.disabled = false; pesanPeringatan.style.display = 'none';
+        } else {
+            btnOrder.disabled = true; pesanPeringatan.style.display = 'block';
+            pesanPeringatan.innerText = `Pilih rasa untuk ${sisaKuota} donat lagi agar bisa memesan.`;
+        }
+    }
+
+    function bukaModal() { document.getElementById('modal-nama').style.display = 'flex'; }
+    function tutupModal() { document.getElementById('modal-nama').style.display = 'none'; }
+
+    // REALTIME DATABASE: Kirim Pesanan
+    function prosesOrderLengkap() {
+        let nama = document.getElementById('nama-pemesan').value;
+        if (nama.trim() === "") { alert("Nama tidak boleh kosong!"); return; }
+
+        let btnOrder = document.getElementById('btn-finish-order');
+        btnOrder.innerText = "Memproses..."; btnOrder.disabled = true;
+
+        db.collection("pesanan").add({
+            waktu: new Date().toLocaleString('id-ID'),
+            waktu_unix: Date.now(), // Untuk mengurutkan data
+            nama: nama,
+            total_qty: totalDonat,
+            detail_varian: keranjangVarian
+        }).then(() => {
+            alert("Pesanan atas nama " + nama + " berhasil terkirim ke Dapur! Terima kasih.");
+            document.getElementById('nama-pemesan').value = "";
+            btnOrder.innerText = "Finish"; btnOrder.disabled = false;
+            tutupModal(); resetTotalDonat(); 
+        }).catch((error) => {
+            alert("Terjadi kesalahan koneksi internet.");
+            btnOrder.innerText = "Finish"; btnOrder.disabled = false;
+        });
+    }
+
+    // --- MANAJEMEN ADMIN ---
+    function toggleAdminLogin() {
+        document.getElementById('customer-area').style.display = 'none';
+        document.getElementById('btn-toggle-admin').style.display = 'none';
+        document.getElementById('page-title').innerText = "Halaman Admin";
+        document.getElementById('login-area').style.display = 'block';
+    }
+
+    function kembaliKeMenu() {
+        document.getElementById('login-area').style.display = 'none';
+        document.getElementById('admin-area').style.display = 'none';
+        document.getElementById('customer-area').style.display = 'block';
+        document.getElementById('btn-toggle-admin').style.display = 'block';
+        document.getElementById('btn-toggle-admin').innerText = "Login Admin";
+        document.getElementById('page-title').innerText = "Menu Donat";
+    }
+
+    function loginAdmin() {
+        let pass = document.getElementById('password-admin').value;
+        if (pass === "admin123") {
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('admin-area').style.display = 'block';
+            document.getElementById('password-admin').value = "";
+            let btnTop = document.getElementById('btn-toggle-admin');
+            btnTop.style.display = 'block'; btnTop.innerText = "Keluar Admin"; btnTop.onclick = kembaliKeMenu;
+            muatDataPesananOnline();
+        } else { alert("Password Salah!"); }
+    }
+
+    // REALTIME DATABASE: Tarik Daftar Pesanan
+    let unsubscribeOrders = null;
+    function muatDataPesananOnline() {
+        if(unsubscribeOrders) unsubscribeOrders();
+        
+        unsubscribeOrders = db.collection("pesanan").orderBy("waktu_unix", "desc").onSnapshot((querySnapshot) => {
+            dataPesananGlobal = [];
+            let tbody = document.getElementById('tabel-pesanan');
+            tbody.innerHTML = "";
+            document.getElementById('check-all').checked = false;
+
+            if(querySnapshot.empty) {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; padding: 20px;'>Belum ada pesanan masuk.</td></tr>";
+                return;
+            }
+
+            querySnapshot.forEach((doc) => {
+                let p = doc.data();
+                p.id = doc.id; // Simpan ID unik dari database
+                dataPesananGlobal.push(p);
+
+                let detailHTML = "<ul style='margin:0; padding-left: 15px;'>";
+                p.detail_varian.forEach(v => { detailHTML += `<li>${v.qty}x ${v.glaze} + ${v.topping}</li>`; });
+                detailHTML += "</ul>";
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="check-center"><input type="checkbox" class="check-pesanan" value="${dataPesananGlobal.length - 1}"></td>
+                    <td><small>${p.waktu}</small></td>
+                    <td><strong>${p.nama}</strong><br><small style="color:var(--primary)">Total: ${p.total_qty} Pcs</small></td>
+                    <td>${detailHTML}</td>
+                    <td><button class="btn-print" onclick="prosesCetak([${dataPesananGlobal.length - 1}])">Cetak</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Putar bunyi notifikasi jika ada pesanan baru masuk! (Opsional, browser kadang memblokir auto-play audio)
+            // new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>{});
+        });
+    }
+
+    // UPDATE DATABASE: Manajemen Menu
+    function saveMenuToDB() {
+        db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings });
+    }
+
+    function muatManajemenMenu() {
+        let mgmtGlaze = document.getElementById('mgmt-glaze-list'); mgmtGlaze.innerHTML = "";
+        listGlazes.forEach((g, index) => {
+            mgmtGlaze.innerHTML += `<li class="mgmt-item"><span>${g}</span> <button class="btn-danger" style="padding: 4px 8px; font-size:12px; width:auto;" onclick="removeMenu('glaze', ${index})">Hapus</button></li>`;
+        });
+        let mgmtTopping = document.getElementById('mgmt-topping-list'); mgmtTopping.innerHTML = "";
+        listToppings.forEach((t, index) => {
+            mgmtTopping.innerHTML += `<li class="mgmt-item"><span>${t}</span> <button class="btn-danger" style="padding: 4px 8px; font-size:12px; width:auto;" onclick="removeMenu('topping', ${index})">Hapus</button></li>`;
+        });
+    }
+
+    function addMenu(type) {
+        if (type === 'glaze') {
+            let input = document.getElementById('new-glaze'); if (input.value.trim() === "") return;
+            listGlazes.push(input.value.trim()); input.value = "";
+        } else {
+            let input = document.getElementById('new-topping'); if (input.value.trim() === "") return;
+            listToppings.push(input.value.trim()); input.value = "";
+        }
+        saveMenuToDB(); // Simpan ke online
+    }
+
+    function removeMenu(type, index) {
+        if (confirm("Hapus menu ini dari daftar pilihan?")) {
+            if (type === 'glaze') listGlazes.splice(index, 1);
+            else listToppings.splice(index, 1);
+            saveMenuToDB(); // Simpan ke online
+        }
+    }
+
+    // FITUR CETAK
+    function toggleCentangSemua() {
+        let checkAll = document.getElementById('check-all').checked;
+        let checkboxes = document.querySelectorAll('.check-pesanan');
+        checkboxes.forEach(cb => cb.checked = checkAll);
+    }
+
+    function cetakStrukTerpilih() {
+        let checkboxes = document.querySelectorAll('.check-pesanan:checked');
+        if(checkboxes.length === 0) { alert("Silakan centang minimal satu pesanan."); return; }
+        let indexesToPrint = [];
+        checkboxes.forEach(cb => indexesToPrint.push(parseInt(cb.value)));
+        prosesCetak(indexesToPrint);
+    }
+
+    function prosesCetak(indexesArray) {
+        let receiptHTML = '';
+        indexesArray.forEach((idx, i) => {
+            let p = dataPesananGlobal[idx];
+            receiptHTML += `
+                <div class="struk-satuan">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; font-size: 16px;">ORDER DONAT</h3>
+                        <p style="margin: 0; font-size: 10px;">Dapur Mas Aan</p>
+                        <hr style="border-top: 1px dashed black; margin: 5px 0;">
+                    </div>
+                    <p style="margin: 2px 0;">Waktu: ${p.waktu}</p>
+                    <p style="margin: 2px 0;">Pemesan: <strong>${p.nama}</strong></p>
+                    <hr style="border-top: 1px dashed black; margin: 5px 0;">
+            `;
+            p.detail_varian.forEach(v => {
+                receiptHTML += `<div style="margin-bottom: 5px;"><span style="display:block; font-weight: bold;">${v.qty}x Donat</span><span style="display:block; padding-left: 10px; font-size: 11px;">- G: ${v.glaze}</span><span style="display:block; padding-left: 10px; font-size: 11px;">- T: ${v.topping}</span></div>`;
+            });
+            receiptHTML += `<hr style="border-top: 1px dashed black; margin: 5px 0;"><p style="margin: 5px 0; text-align: right; font-size: 14px;"><strong>TOTAL: ${p.total_qty} Pcs</strong></p><div style="text-align: center; margin-top: 15px;"><p style="margin: 0; font-size: 10px;">--- Siap Diproses ---</p></div></div>`;
+            if (i < indexesArray.length - 1) receiptHTML += `<div class="garis-potong">✂️ potong di sini ✂️</div>`;
+        });
+        document.getElementById('print-receipt').innerHTML = receiptHTML;
+        window.print();
+    }
+
+    // DATABASE REALTIME: Hapus Pesanan
+    function hapusSemuaPesanan() {
+        if(confirm("Yakin ingin MENGHAPUS SEMUA data pesanan secara PERMANEN?")) {
+            db.collection("pesanan").get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    db.collection("pesanan").doc(doc.id).delete();
+                });
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
