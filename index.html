@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem Order Donat v14 (Final & Mulus)</title>
+    <title>Sistem Order Donat v15 (Bug Fix WA)</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -520,7 +520,20 @@
             status: "baru", 
             detail_varian: keranjangVarian
         }).then(() => {
-            // BERSIHKAN UI TERLEBIH DAHULU SEBELUM PINDAH APLIKASI
+            
+            // 1. BUAT URL WA TERLEBIH DAHULU SEBELUM DATA DI-RESET
+            let urlWA = "";
+            if(viaWA) {
+                let teksWA = `Halo Dapur Mas Aan! 🍩\nSaya ingin order donat.\n\n`;
+                teksWA += `*Data Pemesan:*\nNama: ${nama}\nNomor WA: ${wa || "-"}\nCatatan: ${pesan || "-"}\n\n`;
+                teksWA += `*Detail Pesanan (${totalDonat} Pcs):*\n`;
+                keranjangVarian.forEach(v => { teksWA += `- ${v.qty}x Pcs: Glaze ${v.glaze} + Topping ${v.topping}\n`; });
+                teksWA += `\n*Total Tagihan: ${formatRp(tagihanFinal)}*\n\nTolong segera diproses ya, terima kasih! 🙏`;
+
+                urlWA = `https://api.whatsapp.com/send?phone=${nomorWAAdmin}&text=${encodeURIComponent(teksWA)}`;
+            }
+
+            // 2. BERSIHKAN FORM
             document.getElementById('nama-pemesan').value = "";
             document.getElementById('wa-pemesan').value = "";
             document.getElementById('pesan-pemesan').value = "";
@@ -530,19 +543,13 @@
             btnWa.innerText = "Kirim & Chat WA Admin 📲";
             
             tutupModal(); 
+            
+            // Bypass popup konfirmasi reset dengan mengosongkan keranjang langsung
+            keranjangVarian = [];
             resetTotalDonat(); 
 
-            // REDIRECT ATAU NOTIFIKASI
+            // 3. ARAHKAN ATAU BERI NOTIFIKASI
             if(viaWA) {
-                let teksWA = `Halo Dapur Mas Aan! 🍩\nSaya ingin order donat.\n\n`;
-                teksWA += `*Data Pemesan:*\nNama: ${nama}\nNomor WA: ${wa || "-"}\nCatatan: ${pesan || "-"}\n\n`;
-                teksWA += `*Detail Pesanan (${totalDonat} Pcs):*\n`;
-                keranjangVarian.forEach(v => { teksWA += `- ${v.qty}x Pcs: Glaze ${v.glaze} + Topping ${v.topping}\n`; });
-                teksWA += `\n*Total Tagihan: ${formatRp(tagihanFinal)}*\n\nTolong segera diproses ya, terima kasih! 🙏`;
-
-                let urlWA = `https://api.whatsapp.com/send?phone=${nomorWAAdmin}&text=${encodeURIComponent(teksWA)}`;
-                
-                // Pindah mulus ke aplikasi WA (tidak dianggap pop-up)
                 window.location.href = urlWA; 
             } else {
                 alert("Yeay! 🎉 Pesanan atas nama " + nama + " sudah berhasil masuk ke sistem dapur kami. Silakan tunggu diproses ya.");
