@@ -580,6 +580,12 @@
         document.getElementById('subtitle-text').style.display = 'block';
         document.getElementById('btn-toggle-admin').innerText = "Login Admin";
         document.getElementById('page-title').innerText = "Menu Donat Spesial";
+
+        // ✅ FIX BUG 1: Kembalikan onclick tombol ke fungsi semula agar Login Admin bisa diklik lagi
+        document.getElementById('btn-toggle-admin').onclick = toggleAdminLogin;
+
+        // ✅ FIX MINOR: Hentikan listener pesanan saat logout agar tidak buang resource
+        if (unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; }
     }
 
     function loginAdmin() {
@@ -673,10 +679,6 @@
         }
     }
 
-    function saveMenuToDB() {
-        db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings });
-    }
-
     function muatManajemenMenu() {
         let mgmtGlaze = document.getElementById('mgmt-glaze-list'); mgmtGlaze.innerHTML = "";
         listGlazes.forEach((g, index) => {
@@ -688,22 +690,61 @@
         });
     }
 
+    // ✅ FIX BUG 2: addMenu() kini langsung update UI + ada error handling + rollback jika save gagal
     function addMenu(type) {
+        let newItem = "";
         if (type === 'glaze') {
-            let input = document.getElementById('new-glaze'); if (input.value.trim() === "") return;
-            listGlazes.push(input.value.trim()); input.value = "";
+            let input = document.getElementById('new-glaze');
+            if (input.value.trim() === "") return;
+            newItem = input.value.trim();
+            listGlazes.push(newItem);
+            input.value = "";
         } else {
-            let input = document.getElementById('new-topping'); if (input.value.trim() === "") return;
-            listToppings.push(input.value.trim()); input.value = "";
+            let input = document.getElementById('new-topping');
+            if (input.value.trim() === "") return;
+            newItem = input.value.trim();
+            listToppings.push(newItem);
+            input.value = "";
         }
-        saveMenuToDB(); 
+        muatManajemenMenu(); // Langsung tampil di UI tanpa tunggu server
+        renderVisualCards();
+
+        db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings })
+        .then(() => {
+            // Berhasil disimpan ke Firestore - tidak perlu alert, UI sudah update
+        })
+        .catch((error) => {
+            // ✅ Tampilkan error agar user tahu jika save gagal
+            alert("⚠️ Gagal menyimpan " + (type === 'glaze' ? 'glaze' : 'topping') + " baru!\n\nError: " + error.message + "\n\nPeriksa koneksi internet dan Firestore Security Rules di Firebase Console.");
+            // Rollback: hapus item dari memori lokal karena tidak tersimpan ke server
+            if (type === 'glaze') { let i = listGlazes.lastIndexOf(newItem); if (i > -1) listGlazes.splice(i, 1); }
+            else { let i = listToppings.lastIndexOf(newItem); if (i > -1) listToppings.splice(i, 1); }
+            muatManajemenMenu();
+            renderVisualCards();
+        });
     }
 
+    // ✅ FIX BUG 2: removeMenu() juga kini ada error handling + rollback jika gagal
     function removeMenu(type, index) {
         if (confirm("Yakin ingin menghapus varian rasa ini?")) {
-            if (type === 'glaze') listGlazes.splice(index, 1);
-            else listToppings.splice(index, 1);
-            saveMenuToDB(); 
+            let removedItem;
+            if (type === 'glaze') { removedItem = listGlazes.splice(index, 1)[0]; }
+            else { removedItem = listToppings.splice(index, 1)[0]; }
+            muatManajemenMenu(); // Langsung tampil perubahan
+            renderVisualCards();
+
+            db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings })
+            .then(() => {
+                // Berhasil dihapus dari Firestore
+            })
+            .catch((error) => {
+                alert("⚠️ Gagal menghapus varian!\n\nError: " + error.message + "\n\nPeriksa koneksi internet dan Firestore Security Rules di Firebase Console.");
+                // Rollback: masukkan kembali item yang gagal dihapus
+                if (type === 'glaze') listGlazes.splice(index, 0, removedItem);
+                else listToppings.splice(index, 0, removedItem);
+                muatManajemenMenu();
+                renderVisualCards();
+            });
         }
     }
 
