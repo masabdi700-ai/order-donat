@@ -123,6 +123,31 @@
         #wa-float { position: fixed; bottom: 20px; right: 20px; background: #25D366; color: white; border: none; border-radius: 50px; padding: 12px 18px; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 999; display: none; align-items: center; gap: 7px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
         #wa-float:hover { background: #1da855; }
 
+        /* ADMIN TABS */
+        .admin-tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--secondary); margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .admin-tabs::-webkit-scrollbar { display: none; }
+        .admin-tab-btn { flex-shrink: 0; padding: 11px 18px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: bold; color: #999; border-bottom: 3px solid transparent; margin-bottom: -2px; border-radius: 8px 8px 0 0; transition: 0.15s; min-height: 44px; touch-action: manipulation; white-space: nowrap; }
+        .admin-tab-btn:hover { background: #fff5eb; color: var(--primary); }
+        .admin-tab-btn.aktif { color: var(--primary); border-bottom-color: var(--primary); background: #fff5eb; }
+        .admin-tab-content { display: none; }
+        .admin-tab-content.aktif { display: block; animation: fadeInTab 0.18s ease; }
+        @keyframes fadeInTab { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        .tab-badge { display: inline-block; background: #dc3545; color: white; font-size: 11px; font-weight: bold; padding: 1px 7px; border-radius: 10px; margin-left: 5px; vertical-align: middle; }
+
+        /* KETERSEDIAAN BAHAN */
+        .bahan-list { border: 1px solid #e8d8c8; border-radius: 10px; overflow: hidden; background: white; margin-bottom: 4px; }
+        .bahan-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid #f5ece4; gap: 10px; transition: background 0.15s; }
+        .bahan-row:last-child { border-bottom: none; }
+        .bahan-habis-row { background: #fff5f5; }
+        .bahan-nama { font-size: 14px; font-weight: bold; color: #444; flex: 1; min-width: 0; }
+        .bahan-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+        .btn-bahan-masih { background: #28a745; color: white; min-width: 118px; padding: 8px 12px; font-size: 13px; border-radius: 7px; border: none; cursor: pointer; font-weight: bold; min-height: 40px; touch-action: manipulation; }
+        .btn-bahan-habis { background: #dc3545; color: white; min-width: 118px; padding: 8px 12px; font-size: 13px; border-radius: 7px; border: none; cursor: pointer; font-weight: bold; min-height: 40px; touch-action: manipulation; }
+        .btn-hapus-bahan { background: white; color: #dc3545; border: 1.5px solid #dc3545; padding: 7px 10px; border-radius: 7px; cursor: pointer; font-size: 15px; min-height: 40px; min-width: 40px; touch-action: manipulation; }
+        .btn-hapus-bahan:hover { background: #dc3545; color: white; }
+        .belanja-box { background: #fff8e1; border: 1.5px solid #ffc107; border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+        .belanja-box ul { margin: 8px 0 0; padding-left: 20px; line-height: 2; }
+        .belanja-box li { font-size: 14px; font-weight: bold; color: #555; }
         /* PRINT */
         #print-receipt { display: none; }
 
@@ -281,6 +306,16 @@
                 padding: 9px 8px;
                 min-height: 40px;
             }
+
+            /* --- ADMIN TABS --- */
+            .admin-tab-btn { padding: 10px 12px; font-size: 13px; }
+
+            /* --- BAHAN LIST --- */
+            .bahan-row { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+            .bahan-nama { width: 100%; font-size: 13px; }
+            .bahan-actions { width: 100%; justify-content: flex-end; }
+            .btn-bahan-masih, .btn-bahan-habis { min-width: unset; flex: 1; font-size: 13px; }
+            .btn-hapus-bahan { flex: none; }
 
             /* --- WA FLOAT --- */
             #wa-float { bottom: 12px; right: 12px; padding: 10px 14px; font-size: 13px; }
@@ -466,6 +501,17 @@
 
     <!-- ====== ADMIN AREA ====== -->
     <div id="admin-area">
+
+        <!-- ── TAB NAVIGATION ── -->
+        <div class="admin-tabs" id="admin-tab-nav">
+            <button class="admin-tab-btn aktif" id="tab-btn-pesanan" onclick="switchAdminTab('pesanan', this)">&#128203; Pesanan</button>
+            <button class="admin-tab-btn" id="tab-btn-bahan"    onclick="switchAdminTab('bahan', this)">&#128722; Bahan</button>
+            <button class="admin-tab-btn" id="tab-btn-pengaturan" onclick="switchAdminTab('pengaturan', this)">&#9881;&#65039; Pengaturan</button>
+        </div>
+
+        <!-- ── TAB 1: PESANAN ── -->
+        <div id="admin-tab-pesanan" class="admin-tab-content aktif">
+
         <h2>Daftar Pesanan PO Masuk</h2>
         <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;">
             <button onclick="cetakStrukTerpilih()" class="btn-print-batch">&#128424; Cetak Terpilih</button>
@@ -489,7 +535,37 @@
             </table>
         </div>
 
-        <hr style="margin:30px 0;border-top:2px solid var(--primary);">
+        </div>
+
+        <!-- ── TAB 2: BAHAN ── -->
+        <div id="admin-tab-bahan" class="admin-tab-content">
+
+        <h2>&#128722; Ketersediaan Bahan</h2>
+        <p style="font-size:13px;color:#666;margin-top:-8px;margin-bottom:14px;">Tandai bahan yang habis agar mudah ingat saat belanja. Daftar belanja otomatis muncul di bawah.</p>
+
+        <!-- Daftar Belanja (muncul otomatis jika ada yang Habis) -->
+        <div id="daftar-belanja-box" class="belanja-box" style="display:none;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                <strong style="font-size:15px;color:#856404;">&#128722; Daftar Belanja — Bahan Habis</strong>
+                <button onclick="resetSemuaBahan()" style="background:#28a745;padding:7px 14px;font-size:12px;min-height:34px;border-radius:6px;">&#10003; Semua Sudah Dibeli</button>
+            </div>
+            <ul id="daftar-belanja-items"></ul>
+        </div>
+
+        <!-- List Bahan -->
+        <div id="bahan-container" style="margin-bottom:12px;"></div>
+
+        <!-- Tambah Bahan Baru -->
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" id="new-bahan" placeholder="Nama bahan baru, misal: Tepung Terigu...">
+            <button onclick="tambahBahan()" class="btn-success" style="padding:0 18px;white-space:nowrap;min-width:100px;">+ Tambah</button>
+        </div>
+
+        </div>
+
+        <!-- ── TAB 3: PENGATURAN ── -->
+        <div id="admin-tab-pengaturan" class="admin-tab-content">
+
         <h2>&#128221; Informasi Halaman Pelanggan</h2>
 
         <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:10px;padding:18px;margin-bottom:24px;">
@@ -539,7 +615,9 @@
             <button onclick="simpanInfoPelanggan()" class="btn-success" style="width:100%;font-size:15px;padding:13px;">&#128190; Simpan Informasi Pelanggan</button>
         </div>
 
-        <hr style="margin:30px 0;border-top:2px solid var(--primary);">
+
+        <hr style="margin:22px 0;border:none;border-top:1px solid #e8d8c8;">
+
         <h2>&#9881;&#65039; Pengaturan Bisnis &amp; Menu</h2>
 
         <div class="price-info-admin">
@@ -585,6 +663,8 @@
                 </div>
             </div>
         </div>
+            </div>
+
     </div><!-- end admin-area -->
 
 </div><!-- end container -->
@@ -724,6 +804,25 @@
         }
         updateInfoPelanggan(infoPelanggan);
         updateAdminInfoForm(infoPelanggan);
+    });
+
+    // ---- Firestore: Ketersediaan Bahan ----
+    const defaultBahan = [
+        "Tepung Terigu", "Telur", "Gula Pasir", "Garam",
+        "Ragi Instan", "Susu Cair", "Mentega / Margarin",
+        "Minyak Goreng", "Coklat Bubuk", "Keju Parut",
+        "Gula Halus", "Vanili"
+    ];
+    let listBahan = [];
+
+    db.collection("pengaturan").doc("bahan").onSnapshot((doc) => {
+        if (doc.exists) {
+            listBahan = doc.data().list || [];
+        } else {
+            listBahan = defaultBahan.map(nama => ({ nama, status: "masih" }));
+            db.collection("pengaturan").doc("bahan").set({ list: listBahan });
+        }
+        renderTabelBahan();
     });
 
     // ---- Step Navigation ----
@@ -1208,6 +1307,104 @@
         .catch(() => alert("❌ Gagal menyimpan. Cek koneksi dan Firestore Rules."));
     }
 
+    // ---- Admin Tab Navigation ----
+    function switchAdminTab(tab, btn) {
+        document.querySelectorAll(".admin-tab-content").forEach(el => el.classList.remove("aktif"));
+        document.querySelectorAll(".admin-tab-btn").forEach(el => el.classList.remove("aktif"));
+        document.getElementById("admin-tab-" + tab).classList.add("aktif");
+        if (btn) btn.classList.add("aktif");
+    }
+
+    // ---- Ketersediaan Bahan ----
+    function renderTabelBahan() {
+        const container = document.getElementById("bahan-container");
+        if (!container) return;
+
+        const habisItems = listBahan.filter(b => b.status === "habis");
+
+        // Update daftar belanja
+        const box  = document.getElementById("daftar-belanja-box");
+        const list = document.getElementById("daftar-belanja-items");
+        if (box && list) {
+            if (habisItems.length > 0) {
+                box.style.display = "block";
+                list.innerHTML = habisItems.map(b =>
+                    `<li>${b.nama}</li>`
+                ).join("");
+            } else {
+                box.style.display = "none";
+            }
+        }
+
+        // Render list bahan
+        if (listBahan.length === 0) {
+            container.innerHTML = `<p style="color:#aaa;text-align:center;padding:20px 0;font-style:italic;">Belum ada bahan. Tambah daftar bahan di bawah.</p>`;
+            return;
+        }
+
+        let html = '<div class="bahan-list">';
+        listBahan.forEach((bahan, i) => {
+            const masih   = bahan.status !== "habis";
+            const btnCls  = masih ? "btn-bahan-masih" : "btn-bahan-habis";
+            const btnTxt  = masih ? "&#10003; Masih Ada" : "&#10007; Habis";
+            const rowCls  = masih ? "bahan-row" : "bahan-row bahan-habis-row";
+            html += `<div class="${rowCls}">
+                <span class="bahan-nama">${bahan.nama}</span>
+                <div class="bahan-actions">
+                    <button class="${btnCls}" onclick="toggleStatusBahan(${i})">${btnTxt}</button>
+                    <button class="btn-hapus-bahan" onclick="hapusBahan(${i})" title="Hapus bahan ini">&#128465;</button>
+                </div>
+            </div>`;
+        });
+        html += "</div>";
+        container.innerHTML = html;
+    }
+
+    function toggleStatusBahan(index) {
+        const bahan   = listBahan[index];
+        const toHabis = bahan.status !== "habis";
+        const pesan   = toHabis
+            ? `Apakah bahan "${bahan.nama}" dipastikan sudah HABIS?`
+            : `Tandai "${bahan.nama}" sebagai sudah TERSEDIA kembali?`;
+        if (!confirm(pesan)) return;
+        listBahan[index].status = toHabis ? "habis" : "masih";
+        renderTabelBahan();
+        simpanBahan();
+    }
+
+    function hapusBahan(index) {
+        if (!confirm(`Hapus "${listBahan[index].nama}" dari daftar bahan?`)) return;
+        listBahan.splice(index, 1);
+        renderTabelBahan();
+        simpanBahan();
+    }
+
+    function tambahBahan() {
+        const input = document.getElementById("new-bahan");
+        const nama  = input.value.trim();
+        if (!nama) return;
+        if (listBahan.some(b => b.nama.toLowerCase() === nama.toLowerCase())) {
+            alert(`Bahan "${nama}" sudah ada di daftar.`);
+            return;
+        }
+        listBahan.push({ nama, status: "masih" });
+        input.value = "";
+        renderTabelBahan();
+        simpanBahan();
+    }
+
+    function resetSemuaBahan() {
+        if (!confirm("Tandai semua bahan HABIS sebagai sudah tersedia kembali?\n\n(Daftar belanja akan dikosongkan)")) return;
+        listBahan = listBahan.map(b => ({ ...b, status: "masih" }));
+        renderTabelBahan();
+        simpanBahan();
+    }
+
+    function simpanBahan() {
+        db.collection("pengaturan").doc("bahan").set({ list: listBahan })
+        .catch(err => alert("⚠️ Gagal menyimpan daftar bahan!\n" + err.message));
+    }
+
     // ---- Admin Auth ----
     function toggleAdminLogin() {
         document.getElementById("customer-area").style.display = "none";
@@ -1222,7 +1419,9 @@
         document.getElementById("admin-area").style.display  = "none";
         document.getElementById("customer-area").style.display = "block";
         document.getElementById("page-title").innerText = "🍩 Pre-Order Donat";
-        document.getElementById("btn-toggle-admin").onclick = toggleAdminLogin;
+        const btnAdmin = document.getElementById("btn-toggle-admin");
+        btnAdmin.innerText = "Login Admin";   // ✅ FIX: kembalikan teks tombol
+        btnAdmin.onclick   = toggleAdminLogin; // ✅ kembalikan fungsi tombol
         document.getElementById("wa-float").style.display = "flex";
         if (unsubscribeOrders) { unsubscribeOrders(); unsubscribeOrders = null; }
         setStep(1);
@@ -1237,6 +1436,7 @@
             const btn = document.getElementById("btn-toggle-admin");
             btn.style.display = "block"; btn.innerText = "Keluar Admin"; btn.onclick = kembaliKeMenu;
             muatDataPesananOnline();
+            switchAdminTab('pesanan', document.getElementById('tab-btn-pesanan'));
         } else { alert("Password Salah!"); }
     }
 
@@ -1248,6 +1448,16 @@
             const tbody = document.getElementById("tabel-pesanan");
             tbody.innerHTML = "";
             document.getElementById("check-all").checked = false;
+
+            // Badge pesanan baru di tab button
+            const jumlahBaru = snap.docs.filter(d => d.data().status === "baru" || !d.data().status).length;
+            const tabBtnP = document.getElementById("tab-btn-pesanan");
+            if (tabBtnP) {
+                tabBtnP.innerHTML = jumlahBaru > 0
+                    ? `&#128203; Pesanan <span class="tab-badge">${jumlahBaru}</span>`
+                    : "&#128203; Pesanan";
+            }
+
             if (snap.empty) {
                 tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;padding:30px;'>Belum ada pesanan masuk.</td></tr>";
                 return;
