@@ -123,6 +123,14 @@
         #wa-float { position: fixed; bottom: 20px; right: 20px; background: #25D366; color: white; border: none; border-radius: 50px; padding: 12px 18px; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 999; display: none; align-items: center; gap: 7px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
         #wa-float:hover { background: #1da855; }
 
+        /* KOTAK PENUH NOTICE */
+        #kotak-penuh-box { background: white; border: 2px solid #28a745; border-radius: 14px; padding: 24px 18px; text-align: center; margin-bottom: 16px; }
+        .kotak-penuh-icon { font-size: 44px; margin-bottom: 10px; }
+        .kotak-penuh-judul { font-size: 20px; font-weight: bold; color: #28a745; margin-bottom: 8px; }
+        .kotak-penuh-sub { font-size: 13px; color: #777; margin-bottom: 20px; line-height: 1.6; }
+        .btn-lanjut-besar { width: 100%; background: #28a745; color: white; font-size: 17px; font-weight: bold; padding: 16px; border-radius: 10px; border: none; cursor: pointer; touch-action: manipulation; }
+        .btn-lanjut-besar:hover { background: #218838; }
+
         /* ADMIN TABS */
         .admin-tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--secondary); margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .admin-tabs::-webkit-scrollbar { display: none; }
@@ -419,7 +427,22 @@
                 </div>
             </div>
 
-            <!-- Pilih Rasa -->
+            <!-- Kotak Penuh Notice (muncul otomatis ketika semua slot terisi) -->
+            <div id="kotak-penuh-box" style="display:none;">
+                <div class="kotak-penuh-icon">&#127881;</div>
+                <div class="kotak-penuh-judul">Kotak sudah penuh!</div>
+                <p class="kotak-penuh-sub">
+                    Semua <strong id="penuh-total-display">0</strong> pcs donat sudah dipilih.<br>
+                    Sekarang ketuk tombol di bawah untuk lanjut isi data pemesan.
+                </p>
+                <button class="btn-lanjut-besar" onclick="goToStep3()">Lanjut &mdash; Isi Data Pemesan &rarr;</button>
+                <button onclick="showFlavorSection()" style="background:none;color:#888;font-size:13px;margin-top:10px;min-height:36px;text-decoration:underline;">
+                    &#9998; Ubah pilihan rasa
+                </button>
+            </div>
+
+            <!-- Pilih Rasa (tersembunyi otomatis ketika kotak penuh) -->
+            <div id="flavor-section">
             <div class="step-box">
                 <h3>Pilih Kombinasi Rasa</h3>
 
@@ -448,6 +471,7 @@
                 <p id="pick-hint" style="text-align:center;color:#bbb;font-size:13px;font-style:italic;margin:12px 0;">← Pilih glaze dan topping dulu</p>
                 <button id="btn-tambah" onclick="tambahVarian()" style="display:none;width:100%;background:#28a745;font-size:15px;padding:13px;">+ Masukkan ke Kotak Donat</button>
             </div>
+            </div><!-- end flavor-section -->
         </div>
 
         <!-- STEP 3: Data Pemesan -->
@@ -516,7 +540,7 @@
         <div style="margin-bottom:15px;display:flex;flex-wrap:wrap;gap:8px;">
             <button onclick="cetakStrukTerpilih()" class="btn-print-batch">&#128424; Cetak Terpilih</button>
             <button onclick="hapusPesananTerpilih()" class="btn-danger" style="background:#e67e22;">&#128465; Hapus Selesai</button>
-            <button onclick="hapusSemuaPesanan()" class="btn-danger" style="background:#8b0000;margin-left:auto;">Bersihkan Semua</button>
+            <button onclick="hapusSemuaPesanan()" class="btn-danger" style="background:#8b0000;flex:1 1 100%;">&#128465; Bersihkan Semua Data</button>
         </div>
 
         <div class="table-responsive">
@@ -777,15 +801,23 @@
             nomorWAAdmin  = doc.data().nomor_wa  || "6280000000000";
             hargaDusDasar = doc.data().harga_dus || 20000;
         } else {
+            // ✅ FIX: {merge:true} = TIDAK akan timpa data yang sudah ada di Firestore
+            // Hanya mengisi field yang benar-benar belum ada sama sekali
             listGlazes = defaultGlazes; listToppings = defaultToppings;
-            db.collection("pengaturan").doc("menu").set({ glazes: listGlazes, toppings: listToppings, nomor_wa: nomorWAAdmin, harga_dus: hargaDusDasar });
+            db.collection("pengaturan").doc("menu").set(
+                { glazes: listGlazes, toppings: listToppings, nomor_wa: nomorWAAdmin, harga_dus: hargaDusDasar },
+                { merge: true }
+            );
         }
         renderVisualCards();
         muatManajemenMenu();
         document.getElementById('setting-wa').value    = nomorWAAdmin;
         document.getElementById('setting-harga').value = hargaDusDasar;
-        // Show WA float button once config loaded
         document.getElementById('wa-float').style.display = 'flex';
+    }, (error) => {
+        // ✅ FIX: tangkap error biar tidak diam-diam gagal
+        console.error("Firestore menu error:", error.code, error.message);
+        alert("Gagal memuat data menu: " + error.message + "\n\nCoba refresh halaman.");
     });
 
     // ---- Firestore: Load Info Pelanggan ----
@@ -800,7 +832,7 @@
                 info_tambahan: "Hubungi admin untuk konfirmasi jadwal pengambilan.",
                 pesan_tutup: "PO sedang tutup. Nantikan info pembukaan PO berikutnya!"
             };
-            db.collection("pengaturan").doc("info").set(infoPelanggan);
+            db.collection("pengaturan").doc("info").set(infoPelanggan, { merge: true }); // ✅ FIX: merge
         }
         updateInfoPelanggan(infoPelanggan);
         updateAdminInfoForm(infoPelanggan);
@@ -820,7 +852,7 @@
             listBahan = doc.data().list || [];
         } else {
             listBahan = defaultBahan.map(nama => ({ nama, status: "masih" }));
-            db.collection("pengaturan").doc("bahan").set({ list: listBahan });
+            db.collection("pengaturan").doc("bahan").set({ list: listBahan }, { merge: true }); // ✅ FIX: merge
         }
         renderTabelBahan();
     });
@@ -894,6 +926,14 @@
         document.getElementById("total-qty-display").textContent = v;
         document.getElementById("sisa-display").textContent = v;
 
+        // ✅ FIX: reset tampilan flavor section untuk order baru
+        const fs = document.getElementById("flavor-section");
+        const kp = document.getElementById("kotak-penuh-box");
+        const bt = document.getElementById("btn-to-step3");
+        if (fs) fs.style.display = "block";
+        if (kp) kp.style.display = "none";
+        if (bt) bt.style.display = "none";
+
         renderDonutBox();
         updateCartDisplay();
         updateComboPreview();
@@ -907,8 +947,12 @@
         document.getElementById("qty-total").value = "";
         document.getElementById("area-harga-total").style.display = "none";
         document.querySelectorAll(".flavor-card").forEach(c => c.classList.remove("active"));
-        document.getElementById("glaze-custom").style.display = "none";
+        document.getElementById("glaze-custom").style.display   = "none";
         document.getElementById("topping-custom").style.display = "none";
+        const fs2 = document.getElementById("flavor-section");
+        const kp2 = document.getElementById("kotak-penuh-box");
+        if (fs2) fs2.style.display = "block";
+        if (kp2) kp2.style.display = "none";
         setStep(1);
     }
 
@@ -981,7 +1025,37 @@
         }
     }
 
-    function tambahVarian() {
+    function updateFlavorSection() {
+        const flavorSection = document.getElementById("flavor-section");
+        const kotakPenuh   = document.getElementById("kotak-penuh-box");
+        const btnLanjut    = document.getElementById("btn-to-step3");
+        const penuhTotal   = document.getElementById("penuh-total-display");
+
+        if (sisaKuota <= 0 && totalDonat > 0) {
+            if (flavorSection) flavorSection.style.display = "none";
+            if (kotakPenuh) {
+                if (penuhTotal) penuhTotal.textContent = totalDonat;
+                kotakPenuh.style.display = "block";
+                setTimeout(() => kotakPenuh.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+            }
+            if (btnLanjut) btnLanjut.style.display = "none"; // sudah ada di kotak-penuh-box
+        } else {
+            if (flavorSection) flavorSection.style.display = "block";
+            if (kotakPenuh) kotakPenuh.style.display = "none";
+            if (btnLanjut) btnLanjut.style.display = "none";
+        }
+    }
+
+    function showFlavorSection() {
+        // Tombol "Ubah pilihan rasa" dari kotak-penuh-box
+        document.getElementById("flavor-section").style.display = "block";
+        document.getElementById("kotak-penuh-box").style.display = "none";
+        setTimeout(() => {
+            document.getElementById("flavor-section").scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+    }
+
+        function tambahVarian() {
         if (sisaKuota <= 0) return;
         if (!selectedGlaze)   { alert("Pilih Glaze (lapisan) dulu ya Kak!"); return; }
         if (!selectedTopping) { alert("Pilih Topping (taburan) dulu ya Kak!"); return; }
@@ -1007,9 +1081,7 @@
         renderDonutBox();
         updateCartDisplay();
         updateComboPreview();
-
-        const btnNext = document.getElementById("btn-to-step3");
-        btnNext.style.display = (sisaKuota === 0) ? "block" : "none";
+        updateFlavorSection(); // ✅ kelola flavor section + kotak penuh
     }
 
     function hapusVarian(idx) {
@@ -1019,7 +1091,7 @@
         renderDonutBox();
         updateCartDisplay();
         updateComboPreview();
-        document.getElementById("btn-to-step3").style.display = (sisaKuota === 0) ? "block" : "none";
+        updateFlavorSection(); // ✅
     }
 
     function renderDonutBox() {
@@ -1429,7 +1501,7 @@
 
     function loginAdmin() {
         const pass = document.getElementById("password-admin").value;
-        if (pass === "alcila123") {
+        if (pass === "admin123") {
             document.getElementById("login-area").style.display  = "none";
             document.getElementById("admin-area").style.display  = "block";
             document.getElementById("password-admin").value = "";
