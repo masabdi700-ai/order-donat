@@ -113,6 +113,18 @@
         .mgmt-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
         .po-tag { display: inline-block; background: var(--primary); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: bold; margin-bottom: 4px; }
 
+        /* JENIS DONAT SELECTOR */
+        .donat-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 5px; }
+        .donat-type-card { background: white; border: 2px solid #ddd; border-radius: 10px; padding: 14px 8px; text-align: center; cursor: pointer; transition: 0.15s; user-select: none; -webkit-tap-highlight-color: transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .donat-type-card:hover { border-color: var(--secondary); }
+        .donat-type-card.active { border-color: var(--primary); background-color: #fff5eb; box-shadow: 0 0 0 3px rgba(210,105,30,0.15); }
+        .type-em { font-size: 30px; line-height: 1; }
+        .type-nm { font-size: 13px; font-weight: bold; color: #555; }
+        .type-price { font-size: 11px; color: #888; margin-top: 2px; }
+        .donat-type-card.active .type-nm { color: var(--primary); }
+        .donat-type-card.active .type-price { color: #28a745; font-weight: bold; }
+        .jenis-badge { display: inline-flex; align-items: center; gap: 5px; background: #fff5eb; border: 1px solid #d2691e; color: #d2691e; font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 20px; }
+
         /* STATUS PO TOGGLE */
         .hari-btn { border: 2px solid #ddd; border-radius: 6px; padding: 8px 12px; font-size: 13px; font-weight: bold; cursor: pointer; background: white; color: #666; transition: 0.15s; }
         .hari-btn.aktif { border-color: var(--primary); background: #fff5eb; color: var(--primary); }
@@ -325,6 +337,12 @@
             .btn-bahan-masih, .btn-bahan-habis { min-width: unset; flex: 1; font-size: 13px; }
             .btn-hapus-bahan { flex: none; }
 
+            /* --- JENIS DONAT --- */
+            .donat-type-card { padding: 10px 6px; }
+            .type-em { font-size: 24px; }
+            .type-nm { font-size: 11px; }
+            .type-price { font-size: 10px; }
+
             /* --- WA FLOAT --- */
             #wa-float { bottom: 12px; right: 12px; padding: 10px 14px; font-size: 13px; }
 
@@ -383,13 +401,34 @@
         <!-- STEP 1: Tentukan Jumlah -->
         <div id="step-1">
             <div class="step-box">
-                <h3>Langkah 1: Tentukan Jumlah Donat</h3>
+                <h3>Langkah 1: Pilih Jenis &amp; Jumlah Donat</h3>
 
                 <div class="po-info-card" id="po-info-card">
                     <div id="po-info-content">
                         <p>📦 <strong>Sistem Pre-Order</strong> — pesanan dikerjakan sesuai jadwal PO yang masuk.</p>
                         <p>💬 Admin akan konfirmasi jadwal via WA setelah order masuk.</p>
                         <p>📌 Min. order <strong>6 pcs</strong>, kelipatan 3 (6, 9, 12, 15, dst).</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Pilih Jenis Donat: <span style="color:red;">*</span></label>
+                    <div class="donat-type-grid">
+                        <div class="donat-type-card" data-type="Donat Biasa" onclick="pilihJenisDonat(this.dataset.type, this)">
+                            <span class="type-em">🍩</span>
+                            <span class="type-nm">Donat Biasa</span>
+                            <span class="type-price" id="price-biasa">Rp 20.000 / 6 pcs</span>
+                        </div>
+                        <div class="donat-type-card" data-type="Donat Kentang" onclick="pilihJenisDonat(this.dataset.type, this)">
+                            <span class="type-em">🥔</span>
+                            <span class="type-nm">Donat Kentang</span>
+                            <span class="type-price" id="price-kentang">Rp 22.000 / 6 pcs</span>
+                        </div>
+                        <div class="donat-type-card" data-type="Donat Labu" onclick="pilihJenisDonat(this.dataset.type, this)">
+                            <span class="type-em">🎃</span>
+                            <span class="type-nm">Donat Labu</span>
+                            <span class="type-price" id="price-labu">Rp 22.000 / 6 pcs</span>
+                        </div>
                     </div>
                 </div>
 
@@ -419,6 +458,7 @@
                     <span class="box-title">🍩 Kotak Donatmu (<span id="total-qty-display">0</span> pcs)</span>
                     <span>Sisa: <span class="sisa-badge" id="sisa-display">0</span></span>
                 </div>
+                <div id="jenis-donat-badge-s2" style="margin-bottom:10px;font-size:13px;"></div>
                 <div id="donut-box-grid"></div>
                 <ul id="daftar-keranjang" class="cart-list"></ul>
                 <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -660,6 +700,7 @@
             <ul style="font-size:13px;color:#444;margin:0;padding-left:20px;line-height:1.6;">
                 <li>Rumus kelipatan 12, 18, dst: <strong>Harga Dasar &minus; Rp 2.000</strong>/dus tambahan.</li>
                 <li>Rumus kelipatan nanggung (+3 pcs): <strong>Tetap + Rp 10.000</strong>.</li>
+                <li>Donat Kentang &amp; Labu: <strong>Harga Dasar + Rp 2.000</strong>/dus (otomatis di sistem).</li>
             </ul>
         </div>
 
@@ -729,6 +770,7 @@
     let unsubscribeOrders = null;
     let infoPelanggan = {};
     let hariDipilih = [];
+    let selectedDonatType = ""; // "Donat Biasa", "Donat Kentang", "Donat Labu"
 
     // ---- Emoji & Color Maps ----
     const glazeStyles = {
@@ -787,11 +829,35 @@
     // ---- Helpers ----
     const formatRp = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
 
+    function getHargaDusByType() {
+        if (selectedDonatType === 'Donat Kentang' || selectedDonatType === 'Donat Labu') {
+            return hargaDusDasar + 2000;
+        }
+        return hargaDusDasar;
+    }
+
     function hitungTotalHarga(qty) {
+        const hargaBase = getHargaDusByType();
         let box6 = Math.floor(qty / 6);
         let sisa = qty % 6;
-        let hargaBox = box6 > 0 ? hargaDusDasar + ((box6 - 1) * (hargaDusDasar - 2000)) : 0;
+        let hargaBox = box6 > 0 ? hargaBase + ((box6 - 1) * (hargaBase - 2000)) : 0;
         return hargaBox + (sisa === 3 ? 10000 : 0);
+    }
+
+    function updateDonatTypePrices() {
+        const elBiasa   = document.getElementById('price-biasa');
+        const elKentang = document.getElementById('price-kentang');
+        const elLabu    = document.getElementById('price-labu');
+        if (elBiasa)   elBiasa.textContent   = formatRp(hargaDusDasar) + ' / 6 pcs';
+        if (elKentang) elKentang.textContent = formatRp(hargaDusDasar + 2000) + ' / 6 pcs';
+        if (elLabu)    elLabu.textContent    = formatRp(hargaDusDasar + 2000) + ' / 6 pcs';
+    }
+
+    function pilihJenisDonat(jenis, el) {
+        document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        selectedDonatType = jenis;
+        previewHarga();
     }
 
     // ---- Firestore: Load Pengaturan ----
@@ -812,6 +878,7 @@
         }
         renderVisualCards();
         muatManajemenMenu();
+        updateDonatTypePrices();
         document.getElementById('setting-wa').value    = nomorWAAdmin;
         document.getElementById('setting-harga').value = hargaDusDasar;
         document.getElementById('wa-float').style.display = 'flex';
@@ -907,7 +974,7 @@
     function previewHarga() {
         const v = parseInt(document.getElementById("qty-total").value);
         const area = document.getElementById("area-harga-total");
-        if (!isNaN(v) && v >= 6 && v % 3 === 0) {
+        if (!isNaN(v) && v >= 6 && v % 3 === 0 && selectedDonatType) {
             area.style.display = "block";
             document.getElementById("display-harga-total").textContent = formatRp(hitungTotalHarga(v));
         } else {
@@ -916,6 +983,10 @@
     }
 
     function setTotalDonat() {
+        if (!selectedDonatType) {
+            alert('Pilih jenis donat dulu ya Kak! 🍩\n(Donat Biasa, Donat Kentang, atau Donat Labu)');
+            return;
+        }
         const v = parseInt(document.getElementById("qty-total").value);
         if (isNaN(v) || v < 6 || v % 3 !== 0) {
             alert("Halo! 🙏\n\nMinimal order 6 pcs dan harus kelipatan 3 (6, 9, 12, 15, dst).");
@@ -923,6 +994,13 @@
         }
         totalDonat = v; sisaKuota = v; keranjangVarian = [];
         selectedGlaze = ""; selectedTopping = "";
+
+        // Tampilkan badge jenis donat di Step 2
+        const badge = document.getElementById('jenis-donat-badge-s2');
+        if (badge) {
+            const emMap = {'Donat Biasa':'🍩','Donat Kentang':'🥔','Donat Labu':'🎃'};
+            badge.innerHTML = '<span class="jenis-badge">' + (emMap[selectedDonatType]||'🍩') + ' ' + selectedDonatType + '</span>';
+        }
 
         document.getElementById("total-qty-display").textContent = v;
         document.getElementById("sisa-display").textContent = v;
@@ -944,7 +1022,8 @@
     function resetTotalDonat() {
         if (keranjangVarian.length > 0 && !confirm("Pilihan rasa yang sudah ada akan hilang. Lanjutkan?")) return;
         totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-        selectedGlaze = ""; selectedTopping = "";
+        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+        document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
         document.getElementById("qty-total").value = "";
         document.getElementById("area-harga-total").style.display = "none";
         document.querySelectorAll(".flavor-card").forEach(c => c.classList.remove("active"));
@@ -1149,8 +1228,10 @@
 
     function renderOrderSummary() {
         const harga = hitungTotalHarga(totalDonat);
+        const emJenis = {'Donat Biasa':'🍩','Donat Kentang':'🥔','Donat Labu':'🎃'}[selectedDonatType] || '🍩';
         let html = `<div class="order-summary-card">
-            <div class="summary-title">&#x1F4CB; Ringkasan Pesanan</div>`;
+            <div class="summary-title">&#x1F4CB; Ringkasan Pesanan</div>
+            <div class="summary-row"><span style="font-weight:bold;color:#555;">Jenis Donat</span><span>${emJenis} ${selectedDonatType}</span></div>`;
         keranjangVarian.forEach(item => {
             const gs = getGlazeStyle(item.glaze);
             const te = getTopEmoji(item.topping);
@@ -1205,6 +1286,7 @@
                 let teks = `Halo! 🍩 Saya ingin Pre-Order donat.\n\n`;
                 teks += `*Nomor PO: ${nomorPO}*\n`;
                 teks += `Nama: ${nama}\nNo. WA: ${wa || "-"}\nCatatan: ${pesan || "-"}\n\n`;
+                teks += `Jenis Donat: *${selectedDonatType}*\n`;
                 teks += `*Detail Pesanan (${totalDonat} pcs):*\n`;
                 snapVarian.forEach(v => { teks += `- ${v.qty}x ${v.glaze} + ${v.topping}\n`; });
                 teks += `\n*Total: ${formatRp(tagihan)}*\n\nMohon dikonfirmasi jadwal pengambilannya ya 🙏`;
@@ -1220,6 +1302,7 @@
                 pesan:          pesan || "-",
                 total_qty:      totalDonat,
                 total_harga:    tagihan,
+                jenis_donat:    selectedDonatType,
                 status:         "baru",
                 detail_varian:  snapVarian
             });
@@ -1228,6 +1311,7 @@
             document.getElementById("po-number-display").textContent = nomorPO;
             let det = `<div class="summary-row"><span style="color:#888;">Nomor PO</span><span><strong>${nomorPO}</strong></span></div>`;
             det += `<div class="summary-row"><span style="color:#888;">Nama</span><span>${nama}</span></div>`;
+            det += `<div class="summary-row"><span style="color:#888;">Jenis Donat</span><span>${selectedDonatType}</span></div>`;
             if (wa) det += `<div class="summary-row"><span style="color:#888;">No. WA</span><span>${wa}</span></div>`;
             det += `<div class="summary-row"><span style="color:#888;">Total</span><span class="total-harga-green">${formatRp(tagihan)}</span></div>`;
             snapVarian.forEach(v => {
@@ -1241,7 +1325,8 @@
             document.getElementById("wa-pemesan").value    = "";
             document.getElementById("pesan-pemesan").value = "";
             totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-            selectedGlaze = ""; selectedTopping = "";
+            selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+            document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
 
             setStep("success");
             if (viaWA) window.location.href = urlWA;
@@ -1257,7 +1342,8 @@
 
     function pesanBaru() {
         totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-        selectedGlaze = ""; selectedTopping = "";
+        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+        document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
         document.getElementById("qty-total").value = "";
         document.getElementById("area-harga-total").style.display = "none";
         document.querySelectorAll(".flavor-card").forEach(c => c.classList.remove("active"));
@@ -1540,7 +1626,12 @@
                 p.status = p.status || "baru";
                 dataPesananGlobal.push(p);
 
-                let detailHTML = "<ul style='margin:0;padding-left:15px;'>";
+                let detailHTML = "";
+                if (p.jenis_donat) {
+                    const emMapD = {'Donat Biasa':'🍩','Donat Kentang':'🥔','Donat Labu':'🎃'};
+                    detailHTML += `<div style="font-weight:bold;font-size:12px;color:#d2691e;margin-bottom:4px;">${emMapD[p.jenis_donat]||'🍩'} ${p.jenis_donat}</div>`;
+                }
+                detailHTML += "<ul style='margin:0;padding-left:15px;'>";
                 p.detail_varian.forEach(v => {
                     const gs = getGlazeStyle(v.glaze); const te = getTopEmoji(v.topping);
                     detailHTML += `<li>${gs.em} ${v.qty}x ${v.glaze} + ${te} ${v.topping}</li>`;
@@ -1683,6 +1774,7 @@
                 <p style="margin:2px 0;">Pemesan: <strong>${p.nama}</strong></p>`;
             if (p.wa !== "-") html += `<p style="margin:2px 0;">WA: ${p.wa}</p>`;
             if (p.pesan !== "-") html += `<p style="margin:2px 0;">Catatan: <i>${p.pesan}</i></p>`;
+            if (p.jenis_donat) html += `<p style="margin:2px 0;font-weight:bold;">Jenis: ${p.jenis_donat}</p>`;
             html += `<hr style="border-top:1px dashed black;margin:5px 0;">`;
             p.detail_varian.forEach(v => {
                 html += `<div style="margin-bottom:5px;"><span style="display:block;font-weight:bold;">${v.qty}x Donat</span><span style="display:block;padding-left:10px;font-size:11px;">- Glaze: ${v.glaze}</span><span style="display:block;padding-left:10px;font-size:11px;">- Topping: ${v.topping}</span></div>`;
