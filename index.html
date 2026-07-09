@@ -150,6 +150,23 @@
         .btn-lanjut-besar { width: 100%; background: #28a745; color: white; font-size: 17px; font-weight: bold; padding: 16px; border-radius: 10px; border: none; cursor: pointer; touch-action: manipulation; }
         .btn-lanjut-besar:hover { background: #218838; }
 
+        /* PAKET CEPAT (Isi 3 / Isi 6) */
+        .mode-toggle-group { display: flex; gap: 8px; margin-bottom: 16px; }
+        .mode-toggle-btn { flex: 1; border: 2px solid #ddd; border-radius: 8px; padding: 12px 8px; font-size: 14px; font-weight: bold; cursor: pointer; background: white; color: #666; transition: 0.15s; touch-action: manipulation; }
+        .mode-toggle-btn.aktif { border-color: var(--primary); background: #FFF5EB; color: var(--primary); }
+        .paket-section-label { font-size: 13px; font-weight: bold; color: var(--secondary); margin: 4px 0 8px; }
+        .paket-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 4px; }
+        .paket-card { background: white; border: 2px solid #ddd; border-radius: 10px; padding: 12px 10px; text-align: left; cursor: pointer; transition: 0.15s; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .paket-card:hover { border-color: var(--secondary); }
+        .paket-card.active { border-color: var(--primary); background-color: #FFF5EB; box-shadow: 0 0 0 3px rgba(210,114,30,0.15); }
+        .paket-card-nama { font-size: 14px; font-weight: bold; color: #444; display: block; margin-bottom: 4px; }
+        .paket-card.active .paket-card-nama { color: var(--primary); }
+        .paket-card-ringkas { font-size: 11px; color: #888; line-height: 1.4; display: block; }
+        .paket-kosong-msg { font-size: 13px; color: #999; font-style: italic; padding: 8px 0 14px; text-align: center; }
+        #paket-form-section { display: none; background: #fff8f0; border: 2px solid var(--primary); border-radius: 10px; padding: 15px; margin-top: 14px; }
+        .btn-stepper { width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px; border: 2px solid var(--primary); background: white; color: var(--primary); font-size: 18px; font-weight: bold; cursor: pointer; touch-action: manipulation; display: flex; align-items: center; justify-content: center; padding: 0; line-height: 1; }
+        .btn-stepper:disabled { opacity: 0.35; cursor: not-allowed; }
+
         /* ADMIN TABS */
         .admin-tabs { display: flex; gap: 2px; border-bottom: 2px solid var(--secondary); margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .admin-tabs::-webkit-scrollbar { display: none; }
@@ -229,6 +246,9 @@
             /* --- KARTU RASA (emoji + nama) --- */
             .flavor-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
             .flavor-card { padding: 8px 4px; border-width: 1.5px; }
+            .mode-toggle-btn { padding: 10px 6px; font-size: 13px; }
+            .paket-card { padding: 10px 8px; }
+            .paket-card-ringkas { font-size: 10px; }
             .card-em { font-size: 20px; }
             .card-nm { font-size: 10px; }
 
@@ -498,7 +518,52 @@
 
             <!-- Pilih Rasa (tersembunyi otomatis ketika kotak penuh) -->
             <div id="flavor-section">
-            <div class="step-box">
+
+            <!-- Toggle Mode: Paket Cepat vs Racik Sendiri -->
+            <div class="mode-toggle-group">
+                <button type="button" id="btn-mode-paket" class="mode-toggle-btn aktif" onclick="setModeRasa('paket')">🚀 Paket Cepat</button>
+                <button type="button" id="btn-mode-manual" class="mode-toggle-btn" onclick="setModeRasa('manual')">✋ Racik Sendiri</button>
+            </div>
+
+            <!-- MODE: Paket Cepat -->
+            <div id="paket-mode-section" class="step-box">
+                <h3>Pilih Paket Cepat</h3>
+                <p style="font-size:13px;color:#777;margin-top:-8px;margin-bottom:14px;">Isinya sudah ditentukan Admin — tinggal pilih. Sisa kotak: <strong id="paket-sisa-display">0</strong> pcs.</p>
+
+                <div id="paket6-wrap" style="display:none;">
+                    <p class="paket-section-label">📦 Paket Isi 6</p>
+                    <div id="paket-list-6" class="paket-card-grid"></div>
+                </div>
+
+                <div id="paket3-wrap" style="display:none;margin-top:14px;">
+                    <p class="paket-section-label">📦 Paket Isi 3</p>
+                    <div id="paket-list-3" class="paket-card-grid"></div>
+                </div>
+
+                <p id="paket-kosong-msg" class="paket-kosong-msg" style="display:none;"></p>
+
+                <!-- Preview isi paket sebelum konfirmasi -->
+                <div id="paket-preview-box" class="combo-preview-box" style="display:none;align-items:flex-start;margin-top:12px;">
+                    <span class="combo-em-big">📦</span>
+                    <div class="combo-info">
+                        <div class="combo-title" id="paket-preview-nama">—</div>
+                        <div class="combo-sub" id="paket-preview-isi" style="line-height:1.6;margin-top:4px;"></div>
+                    </div>
+                </div>
+                <div id="paket-stepper-row" style="display:none;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 4px;padding:10px 12px;background:#FFF5EB;border-radius:8px;">
+                    <span style="font-size:13px;color:#777;">Jumlah dus paket ini:</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button type="button" id="btn-jumlah-min" onclick="ubahJumlahPaket(-1)" class="btn-stepper">−</button>
+                        <input type="number" id="paket-jumlah-input" class="qty-inline" style="width:46px;" value="1" min="1" oninput="inputJumlahPaket(this.value)">
+                        <button type="button" id="btn-jumlah-plus" onclick="ubahJumlahPaket(1)" class="btn-stepper">+</button>
+                    </div>
+                </div>
+                <p id="paket-max-hint" style="font-size:11px;color:#aaa;text-align:right;margin:0 0 10px;"></p>
+                <button id="btn-tambah-paket" onclick="konfirmasiTambahPaket()" style="display:none;width:100%;background:#28a745;font-size:15px;padding:13px;">+ Tambahkan Paket Ini ke Kotak</button>
+            </div>
+
+            <!-- MODE: Racik Sendiri (manual) -->
+            <div id="manual-mode-section" class="step-box" style="display:none;">
                 <h3>Pilih Kombinasi Rasa</h3>
 
                 <div class="form-group">
@@ -526,6 +591,7 @@
                 <p id="pick-hint" style="text-align:center;color:#bbb;font-size:13px;font-style:italic;margin:12px 0;">← Pilih glaze dan topping dulu</p>
                 <button id="btn-tambah" onclick="tambahVarian()" style="display:none;width:100%;background:#28a745;font-size:15px;padding:13px;">+ Masukkan ke Kotak Donat</button>
             </div>
+
             </div><!-- end flavor-section -->
         </div>
 
@@ -743,6 +809,53 @@
                 </div>
             </div>
         </div>
+
+        <hr style="margin:22px 0;border:none;border-top:1px solid #e8d8c8;">
+        <h2>🚀 Menu Paket Cepat (Isi 3 &amp; Isi 6)</h2>
+        <p style="font-size:14px;color:#666;">Buat beberapa pilihan paket rasa siap pakai. Pelanggan tinggal ketuk paketnya tanpa racik satu-satu. Boleh bikin lebih dari 1 pilihan per ukuran.</p>
+
+        <div class="mgmt-grid">
+            <div class="mgmt-box">
+                <h3>📦 Paket Isi 3</h3>
+                <div id="paket-admin-list-3"></div>
+                <button onclick="bukaFormPaket('3')" class="btn-success" style="width:100%;margin-top:8px;">+ Tambah Paket Isi 3</button>
+            </div>
+            <div class="mgmt-box">
+                <h3>📦 Paket Isi 6</h3>
+                <div id="paket-admin-list-6"></div>
+                <button onclick="bukaFormPaket('6')" class="btn-success" style="width:100%;margin-top:8px;">+ Tambah Paket Isi 6</button>
+            </div>
+        </div>
+
+        <!-- Form Tambah/Edit Paket (dipakai bergantian utk isi 3 & isi 6) -->
+        <div id="paket-form-section">
+            <h3 id="paket-form-title" style="margin-top:0;">Tambah Paket</h3>
+            <div class="form-group">
+                <label style="font-size:13px;">Nama Paket:</label>
+                <input type="text" id="paket-form-nama" placeholder="Contoh: Paket Mix Favorit">
+            </div>
+            <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:110px;">
+                    <label style="font-size:12px;">Glaze</label>
+                    <select id="paket-form-glaze"></select>
+                </div>
+                <div style="flex:1;min-width:110px;">
+                    <label style="font-size:12px;">Topping</label>
+                    <select id="paket-form-topping"></select>
+                </div>
+                <div style="width:64px;">
+                    <label style="font-size:12px;">Qty</label>
+                    <input type="number" id="paket-form-qty" value="1" min="1" style="text-align:center;">
+                </div>
+                <button onclick="tambahRincianFormPaket()" class="btn-success" style="padding:0 16px;height:48px;">+</button>
+            </div>
+            <ul id="paket-form-list" class="mgmt-list"></ul>
+            <p style="font-size:14px;font-weight:bold;margin:6px 0 14px;">Total isi: <span id="paket-form-total">0</span> / <span id="paket-form-target">3</span> pcs</p>
+            <div style="display:flex;gap:8px;">
+                <button onclick="simpanFormPaket()" class="btn-success" style="flex:1;">💾 Simpan Paket</button>
+                <button onclick="tutupFormPaket()" class="btn-grey" style="flex:1;">Batal</button>
+            </div>
+        </div>
             </div>
 
     </div><!-- end admin-area -->
@@ -786,6 +899,15 @@
     let infoPelanggan = {};
     let hariDipilih = [];
     let selectedDonatType = ""; // "Donat Biasa", "Donat Kentang", "Donat Labu"
+
+    // ---- Paket Cepat: State ----
+    let paketIsi3 = [], paketIsi6 = [];   // daftar varian paket per ukuran, dari Firestore (diatur admin)
+    let modeRasa = 'paket';                // mode aktif di Langkah 2: 'paket' | 'manual'
+    let paketDipilih = null;               // { ukuran, id } paket yg sedang di-preview, sebelum dikonfirmasi
+    let paketJumlah = 1;                    // berapa dus paket yg sama mau ditambahkan sekaligus
+    let adminPaketUkuran = null;            // '3' / '6' — form admin sedang terbuka untuk ukuran apa
+    let adminPaketEditId = null;            // null = paket baru, isi id kalau sedang mengedit paket lama
+    let adminPaketItems = [];               // draft rincian di form admin [{glaze,topping,qty}]
 
     // ---- Emoji & Color Maps ----
     const glazeStyles = {
@@ -882,18 +1004,23 @@
             listToppings  = doc.data().toppings  || defaultToppings;
             nomorWAAdmin  = doc.data().nomor_wa  || "6280000000000";
             hargaDusDasar = doc.data().harga_dus || 20000;
+            paketIsi3     = doc.data().paket_isi3 || [];
+            paketIsi6     = doc.data().paket_isi6 || [];
         } else {
             // ✅ FIX: {merge:true} = TIDAK akan timpa data yang sudah ada di Firestore
             // Hanya mengisi field yang benar-benar belum ada sama sekali
             listGlazes = defaultGlazes; listToppings = defaultToppings;
             db.collection("pengaturan").doc("menu").set(
-                { glazes: listGlazes, toppings: listToppings, nomor_wa: nomorWAAdmin, harga_dus: hargaDusDasar },
+                { glazes: listGlazes, toppings: listToppings, nomor_wa: nomorWAAdmin, harga_dus: hargaDusDasar, paket_isi3: [], paket_isi6: [] },
                 { merge: true }
             );
         }
         renderVisualCards();
         muatManajemenMenu();
         updateDonatTypePrices();
+        renderPaketAdminList();
+        populatePaketFormSelects();
+        renderPaketCustomer();
         document.getElementById('setting-wa').value    = nomorWAAdmin;
         document.getElementById('setting-harga').value = hargaDusDasar;
         document.getElementById('wa-float').style.display = 'flex';
@@ -1008,7 +1135,7 @@
             return;
         }
         totalDonat = v; sisaKuota = v; keranjangVarian = [];
-        selectedGlaze = ""; selectedTopping = "";
+        selectedGlaze = ""; selectedTopping = ""; paketDipilih = null; paketJumlah = 1;
 
         // Tampilkan badge jenis donat di Step 2
         const badge = document.getElementById('jenis-donat-badge-s2');
@@ -1031,13 +1158,14 @@
         renderDonutBox();
         updateCartDisplay();
         updateComboPreview();
+        setModeRasa('paket');
         setStep(2);
     }
 
     function resetTotalDonat() {
         if (keranjangVarian.length > 0 && !confirm("Pilihan rasa yang sudah ada akan hilang. Lanjutkan?")) return;
         totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = ""; paketDipilih = null; paketJumlah = 1;
         document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
         document.getElementById("qty-total").value = "";
         document.getElementById("area-harga-total").style.display = "none";
@@ -1145,6 +1273,7 @@
         // Tombol "Ubah pilihan rasa" dari kotak-penuh-box
         document.getElementById("flavor-section").style.display = "block";
         document.getElementById("kotak-penuh-box").style.display = "none";
+        renderPaketCustomer();
         setTimeout(() => {
             document.getElementById("flavor-section").scrollIntoView({ behavior: "smooth", block: "start" });
         }, 100);
@@ -1180,13 +1309,25 @@
     }
 
     function hapusVarian(idx) {
-        sisaKuota += keranjangVarian[idx].qty;
-        keranjangVarian.splice(idx, 1);
+        const target = keranjangVarian[idx];
+        if (target.paketGroupId) {
+            // Item ini berasal dari Paket Cepat — hapus semua rincian paket ini sekaligus
+            let kembali = 0;
+            keranjangVarian = keranjangVarian.filter(item => {
+                if (item.paketGroupId === target.paketGroupId) { kembali += item.qty; return false; }
+                return true;
+            });
+            sisaKuota += kembali;
+        } else {
+            sisaKuota += target.qty;
+            keranjangVarian.splice(idx, 1);
+        }
         document.getElementById("qty-rasa").value = Math.max(1, sisaKuota);
         renderDonutBox();
         updateCartDisplay();
         updateComboPreview();
         updateFlavorSection(); // ✅
+        renderPaketCustomer();
     }
 
     function renderDonutBox() {
@@ -1227,12 +1368,194 @@
         keranjangVarian.forEach((item, i) => {
             const gs = getGlazeStyle(item.glaze);
             const te = getTopEmoji(item.topping);
+            const badge = item.paketLabel ? `<br><span style="font-size:11px;color:var(--primary);font-weight:bold;">📦 ${item.paketLabel}</span>` : "";
+            const labelHapus = item.paketGroupId ? "Hapus Paket" : "Hapus";
             const li = document.createElement("li");
             li.className = "cart-item";
-            li.innerHTML = `<span>${gs.em} ${item.qty}x ${item.glaze} + ${te} ${item.topping}</span>
-                            <button class="btn-danger" style="padding:6px 12px;width:auto;border-radius:6px;font-size:12px;" onclick="hapusVarian(${i})">Hapus</button>`;
+            li.innerHTML = `<span>${gs.em} ${item.qty}x ${item.glaze} + ${te} ${item.topping}${badge}</span>
+                            <button class="btn-danger" style="padding:6px 12px;width:auto;border-radius:6px;font-size:12px;flex-shrink:0;" onclick="hapusVarian(${i})">${labelHapus}</button>`;
             list.appendChild(li);
         });
+    }
+
+    // ---- Paket Cepat: Sisi Pelanggan ----
+    function setModeRasa(mode) {
+        modeRasa = mode;
+        const btnP = document.getElementById("btn-mode-paket");
+        const btnM = document.getElementById("btn-mode-manual");
+        const secP = document.getElementById("paket-mode-section");
+        const secM = document.getElementById("manual-mode-section");
+        if (btnP) btnP.classList.toggle("aktif", mode === "paket");
+        if (btnM) btnM.classList.toggle("aktif", mode === "manual");
+        if (secP) secP.style.display = mode === "paket" ? "block" : "none";
+        if (secM) secM.style.display = mode === "manual" ? "block" : "none";
+        if (mode === "paket") {
+            paketDipilih = null;
+            paketJumlah = 1;
+            renderPaketCustomer();
+        }
+    }
+
+    function renderPaketCustomer() {
+        const wrap6 = document.getElementById("paket6-wrap");
+        const wrap3 = document.getElementById("paket3-wrap");
+        const list6 = document.getElementById("paket-list-6");
+        const list3 = document.getElementById("paket-list-3");
+        const kosongMsg = document.getElementById("paket-kosong-msg");
+        const sisaDisp = document.getElementById("paket-sisa-display");
+        if (!wrap6 || !wrap3) return; // belum masuk Langkah 2
+
+        if (sisaDisp) sisaDisp.textContent = sisaKuota;
+
+        const buatCard = (pkt, ukuran) => {
+            const aktif = paketDipilih && paketDipilih.ukuran === ukuran && paketDipilih.id === pkt.id;
+            const ringkas = pkt.items.map(it => `${it.qty}x ${it.glaze}+${it.topping}`).join(', ');
+            return `<div class="paket-card${aktif ? ' active' : ''}" onclick="pilihPaketCustomer('${ukuran}','${pkt.id}')">
+                <span class="paket-card-nama">${pkt.nama}</span>
+                <span class="paket-card-ringkas">${ringkas}</span>
+            </div>`;
+        };
+
+        const tampil6 = sisaKuota >= 6 && paketIsi6.length > 0;
+        const tampil3 = sisaKuota >= 3 && paketIsi3.length > 0;
+
+        wrap6.style.display = tampil6 ? "block" : "none";
+        if (tampil6) list6.innerHTML = paketIsi6.map(p => buatCard(p, '6')).join('');
+
+        wrap3.style.display = tampil3 ? "block" : "none";
+        if (tampil3) list3.innerHTML = paketIsi3.map(p => buatCard(p, '3')).join('');
+
+        if (kosongMsg) {
+            if (tampil6 || tampil3 || sisaKuota <= 0) {
+                kosongMsg.style.display = "none";
+            } else if (paketIsi3.length === 0 && paketIsi6.length === 0) {
+                kosongMsg.textContent = 'Admin belum menambahkan paket cepat. Silakan pakai mode "Racik Sendiri" dulu ya 🙏';
+                kosongMsg.style.display = "block";
+            } else {
+                kosongMsg.textContent = `Sisa ${sisaKuota} pcs belum cukup untuk paket yang tersedia. Silakan lengkapi lewat mode "Racik Sendiri".`;
+                kosongMsg.style.display = "block";
+            }
+        }
+
+        if (paketDipilih && sisaKuota < parseInt(paketDipilih.ukuran)) {
+            paketDipilih = null;
+            paketJumlah = 1;
+        }
+        renderPaketPreview();
+    }
+
+    function pilihPaketCustomer(ukuran, id) {
+        paketDipilih = { ukuran: ukuran, id: id };
+        paketJumlah = 1;
+        renderPaketCustomer();
+        setTimeout(() => {
+            const box = document.getElementById("paket-preview-box");
+            if (box) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 50);
+    }
+
+    function renderPaketPreview() {
+        const box    = document.getElementById("paket-preview-box");
+        const btn    = document.getElementById("btn-tambah-paket");
+        const stepRow = document.getElementById("paket-stepper-row");
+        const maxHint = document.getElementById("paket-max-hint");
+        if (!box || !btn) return;
+        if (!paketDipilih) {
+            box.style.display = "none";
+            btn.style.display = "none";
+            if (stepRow) stepRow.style.display = "none";
+            if (maxHint) maxHint.textContent = "";
+            return;
+        }
+        const list = paketDipilih.ukuran === '6' ? paketIsi6 : paketIsi3;
+        const pkt  = list.find(p => p.id === paketDipilih.id);
+        if (!pkt) {
+            paketDipilih = null;
+            paketJumlah = 1;
+            box.style.display = "none";
+            btn.style.display = "none";
+            if (stepRow) stepRow.style.display = "none";
+            return;
+        }
+
+        const ukuran = parseInt(paketDipilih.ukuran);
+        const maxJumlah = Math.max(1, Math.floor(sisaKuota / ukuran));
+        if (paketJumlah > maxJumlah) paketJumlah = maxJumlah;
+        if (paketJumlah < 1) paketJumlah = 1;
+
+        const totalPcs = ukuran * paketJumlah;
+        const labelJumlah = paketJumlah > 1 ? ` × ${paketJumlah}` : '';
+        document.getElementById("paket-preview-nama").textContent = "📦 " + pkt.nama + " (Isi " + ukuran + ")" + labelJumlah + " — " + totalPcs + " pcs";
+        document.getElementById("paket-preview-isi").innerHTML = pkt.items.map(it => {
+            const gs = getGlazeStyle(it.glaze); const te = getTopEmoji(it.topping);
+            return `${gs.em} ${it.qty * paketJumlah}x ${it.glaze} + ${te} ${it.topping}`;
+        }).join('<br>');
+
+        if (stepRow) stepRow.style.display = maxJumlah > 1 ? "flex" : "none";
+        const inputEl = document.getElementById("paket-jumlah-input");
+        if (inputEl) inputEl.value = paketJumlah;
+        const btnMin  = document.getElementById("btn-jumlah-min");
+        const btnPlus = document.getElementById("btn-jumlah-plus");
+        if (btnMin)  btnMin.disabled  = paketJumlah <= 1;
+        if (btnPlus) btnPlus.disabled = paketJumlah >= maxJumlah;
+        if (maxHint) maxHint.textContent = maxJumlah > 1 ? `maks ${maxJumlah} dus (sisa ${sisaKuota} pcs)` : "";
+
+        btn.textContent = paketJumlah > 1 ? `+ Tambahkan ${paketJumlah} Dus Paket Ini ke Kotak` : "+ Tambahkan Paket Ini ke Kotak";
+        box.style.display = "flex";
+        btn.style.display = "block";
+    }
+
+    function ubahJumlahPaket(delta) {
+        if (!paketDipilih) return;
+        const ukuran = parseInt(paketDipilih.ukuran);
+        const maxJumlah = Math.max(1, Math.floor(sisaKuota / ukuran));
+        paketJumlah = Math.min(maxJumlah, Math.max(1, paketJumlah + delta));
+        renderPaketPreview();
+    }
+
+    function inputJumlahPaket(val) {
+        if (!paketDipilih) return;
+        const ukuran = parseInt(paketDipilih.ukuran);
+        const maxJumlah = Math.max(1, Math.floor(sisaKuota / ukuran));
+        let n = parseInt(val);
+        if (isNaN(n) || n < 1) n = 1;
+        if (n > maxJumlah) n = maxJumlah;
+        paketJumlah = n;
+        renderPaketPreview();
+    }
+
+    function konfirmasiTambahPaket() {
+        if (!paketDipilih) return;
+        const list = paketDipilih.ukuran === '6' ? paketIsi6 : paketIsi3;
+        const pkt  = list.find(p => p.id === paketDipilih.id);
+        if (!pkt) return;
+        const ukuran   = parseInt(paketDipilih.ukuran);
+        const jumlah   = Math.max(1, paketJumlah);
+        const totalPcs = ukuran * jumlah;
+        if (sisaKuota < totalPcs) {
+            alert("Sisa kotak tidak cukup untuk paket ini.");
+            paketDipilih = null; paketJumlah = 1;
+            renderPaketCustomer();
+            return;
+        }
+
+        const groupId = 'grp' + Date.now() + Math.floor(Math.random() * 1000);
+        const labelJumlah = jumlah > 1 ? ` × ${jumlah}` : '';
+        pkt.items.forEach(it => {
+            keranjangVarian.push({
+                glaze: it.glaze, topping: it.topping, qty: it.qty * jumlah,
+                paketLabel: pkt.nama + " (Isi " + ukuran + ")" + labelJumlah,
+                paketGroupId: groupId
+            });
+        });
+        sisaKuota -= totalPcs;
+        paketDipilih = null;
+        paketJumlah = 1;
+
+        renderDonutBox();
+        updateCartDisplay();
+        updateFlavorSection();
+        renderPaketCustomer();
     }
 
     // ---- Step 3: Data & Kirim ----
@@ -1250,7 +1573,8 @@
         keranjangVarian.forEach(item => {
             const gs = getGlazeStyle(item.glaze);
             const te = getTopEmoji(item.topping);
-            html += `<div class="summary-row"><span>${gs.em} ${item.glaze} + ${te} ${item.topping}</span><span>${item.qty} pcs</span></div>`;
+            const badge = item.paketLabel ? `<br><small style="color:var(--primary);">📦 ${item.paketLabel}</small>` : "";
+            html += `<div class="summary-row"><span>${gs.em} ${item.glaze} + ${te} ${item.topping}${badge}</span><span>${item.qty} pcs</span></div>`;
         });
         html += `<div class="summary-total">
             <span>Total (${totalDonat} pcs)</span>
@@ -1294,7 +1618,7 @@
         try {
             const nomorPO    = await generateNomorPO();
             const tagihan    = hitungTotalHarga(totalDonat);
-            const snapVarian = [...keranjangVarian];
+            const snapVarian = [...keranjangVarian]; // termasuk label paket — aman tersimpan ke Firestore (rules tidak membatasi isi tiap item detail_varian)
 
             let urlWA = "";
             if (viaWA) {
@@ -1303,7 +1627,7 @@
                 teks += `Nama: ${nama}\nNo. WA: ${wa || "-"}\nCatatan: ${pesan || "-"}\n\n`;
                 teks += `Jenis Donat: *${selectedDonatType}*\n`;
                 teks += `*Detail Pesanan (${totalDonat} pcs):*\n`;
-                snapVarian.forEach(v => { teks += `- ${v.qty}x ${v.glaze} + ${v.topping}\n`; });
+                snapVarian.forEach(v => { teks += `- ${v.qty}x ${v.glaze} + ${v.topping}${v.paketLabel ? ' (📦 ' + v.paketLabel + ')' : ''}\n`; });
                 teks += `\n*Total: ${formatRp(tagihan)}*\n\nMohon dikonfirmasi jadwal pengambilannya ya 🙏`;
                 urlWA = `https://api.whatsapp.com/send?phone=${nomorWAAdmin}&text=${encodeURIComponent(teks)}`;
             }
@@ -1331,7 +1655,8 @@
             det += `<div class="summary-row"><span style="color:#888;">Total</span><span class="total-harga-green">${formatRp(tagihan)}</span></div>`;
             snapVarian.forEach(v => {
                 const gs = getGlazeStyle(v.glaze); const te = getTopEmoji(v.topping);
-                det += `<div class="summary-row"><span>${gs.em} ${v.glaze} + ${te} ${v.topping}</span><span>${v.qty} pcs</span></div>`;
+                const badge = v.paketLabel ? `<br><small style="color:var(--primary);">📦 ${v.paketLabel}</small>` : "";
+                det += `<div class="summary-row"><span>${gs.em} ${v.glaze} + ${te} ${v.topping}${badge}</span><span>${v.qty} pcs</span></div>`;
             });
             document.getElementById("success-detail").innerHTML = det;
 
@@ -1340,7 +1665,7 @@
             document.getElementById("wa-pemesan").value    = "";
             document.getElementById("pesan-pemesan").value = "";
             totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-            selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+            selectedGlaze = ""; selectedTopping = ""; selectedDonatType = ""; paketDipilih = null; paketJumlah = 1;
             document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
 
             setStep("success");
@@ -1357,7 +1682,7 @@
 
     function pesanBaru() {
         totalDonat = 0; sisaKuota = 0; keranjangVarian = [];
-        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = "";
+        selectedGlaze = ""; selectedTopping = ""; selectedDonatType = ""; paketDipilih = null; paketJumlah = 1;
         document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
         document.getElementById("qty-total").value = "";
         document.getElementById("area-harga-total").style.display = "none";
@@ -1660,7 +1985,8 @@
                 detailHTML += "<ul style='margin:0;padding-left:15px;'>";
                 p.detail_varian.forEach(v => {
                     const gs = getGlazeStyle(v.glaze); const te = getTopEmoji(v.topping);
-                    detailHTML += `<li>${gs.em} ${v.qty}x ${v.glaze} + ${te} ${v.topping}</li>`;
+                    const badgePaket = v.paketLabel ? ` <span style="color:#D2721E;font-weight:bold;">📦${v.paketLabel}</span>` : "";
+                    detailHTML += `<li>${gs.em} ${v.qty}x ${v.glaze} + ${te} ${v.topping}${badgePaket}</li>`;
                 });
                 detailHTML += "</ul>";
 
@@ -1759,6 +2085,144 @@
         });
     }
 
+    // ---- Admin: Paket Cepat (Isi 3 & Isi 6) ----
+    function renderPaketAdminList() {
+        const c3 = document.getElementById("paket-admin-list-3");
+        const c6 = document.getElementById("paket-admin-list-6");
+        if (!c3 || !c6) return;
+        const buatBaris = (list, ukuran) => {
+            if (list.length === 0) return `<p style="font-size:13px;color:#999;font-style:italic;padding:6px 0;">Belum ada paket untuk isi ${ukuran}.</p>`;
+            return list.map(pkt => {
+                const ringkas = pkt.items.map(it => `${it.qty}x ${it.glaze}+${it.topping}`).join(', ');
+                return `<div class="mgmt-item" style="align-items:flex-start;">
+                    <div style="flex:1;padding-right:8px;">
+                        <strong>${pkt.nama}</strong>
+                        <div style="font-size:12px;color:#777;margin-top:2px;">${ringkas}</div>
+                    </div>
+                    <div style="display:flex;gap:5px;flex-shrink:0;">
+                        <button class="btn-warning" style="padding:6px 10px;font-size:12px;width:auto;" onclick="bukaFormPaket('${ukuran}','${pkt.id}')">Edit</button>
+                        <button class="btn-danger" style="padding:6px 10px;font-size:12px;width:auto;" onclick="hapusPaketAdmin('${ukuran}','${pkt.id}')">Hapus</button>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+        c3.innerHTML = buatBaris(paketIsi3, '3');
+        c6.innerHTML = buatBaris(paketIsi6, '6');
+    }
+
+    function populatePaketFormSelects() {
+        const selG = document.getElementById("paket-form-glaze");
+        const selT = document.getElementById("paket-form-topping");
+        if (!selG || !selT) return;
+        selG.innerHTML = listGlazes.map(g => `<option value="${g}">${g}</option>`).join('');
+        selT.innerHTML = listToppings.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    function bukaFormPaket(ukuran, id) {
+        adminPaketUkuran = ukuran;
+        adminPaketEditId = id || null;
+        const list = ukuran === '6' ? paketIsi6 : paketIsi3;
+        const existing = id ? list.find(p => p.id === id) : null;
+        adminPaketItems = existing ? existing.items.map(it => ({ ...it })) : [];
+
+        document.getElementById("paket-form-nama").value = existing ? existing.nama : "";
+        document.getElementById("paket-form-title").textContent = (existing ? "Edit" : "Tambah") + " Paket Isi " + ukuran;
+        document.getElementById("paket-form-target").textContent = ukuran;
+        populatePaketFormSelects();
+        renderDraftPaketForm();
+
+        const sec = document.getElementById("paket-form-section");
+        sec.style.display = "block";
+        setTimeout(() => sec.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+    }
+
+    function tutupFormPaket() {
+        document.getElementById("paket-form-section").style.display = "none";
+        adminPaketUkuran = null; adminPaketEditId = null; adminPaketItems = [];
+    }
+
+    function renderDraftPaketForm() {
+        const ul = document.getElementById("paket-form-list");
+        const totalEl = document.getElementById("paket-form-total");
+        const total = adminPaketItems.reduce((s, it) => s + it.qty, 0);
+        totalEl.textContent = total;
+        totalEl.style.color = (total === parseInt(adminPaketUkuran)) ? "#28a745" : "#dc3545";
+
+        if (adminPaketItems.length === 0) {
+            ul.innerHTML = "<li style='color:#aaa;font-style:italic;padding:6px 0;font-size:13px;list-style:none;'>Belum ada rincian, tambahkan di atas.</li>";
+            return;
+        }
+        ul.innerHTML = adminPaketItems.map((it, i) => {
+            const gs = getGlazeStyle(it.glaze); const te = getTopEmoji(it.topping);
+            return `<li class="mgmt-item"><span>${gs.em} ${it.qty}x ${it.glaze} + ${te} ${it.topping}</span><button class="btn-danger" style="padding:6px 10px;font-size:12px;width:auto;" onclick="hapusRincianFormPaket(${i})">Hapus</button></li>`;
+        }).join('');
+    }
+
+    function tambahRincianFormPaket() {
+        const glaze   = document.getElementById("paket-form-glaze").value;
+        const topping = document.getElementById("paket-form-topping").value;
+        const qty     = parseInt(document.getElementById("paket-form-qty").value);
+        const target  = parseInt(adminPaketUkuran);
+        const totalSaatIni = adminPaketItems.reduce((s, it) => s + it.qty, 0);
+
+        if (!glaze || !topping) { alert("Pilih glaze dan topping dulu."); return; }
+        if (isNaN(qty) || qty < 1) { alert("Masukkan jumlah yang benar."); return; }
+        if (totalSaatIni + qty > target) { alert(`Kelebihan! Sisa slot paket ini tinggal ${target - totalSaatIni} pcs.`); return; }
+
+        adminPaketItems.push({ glaze, topping, qty });
+        document.getElementById("paket-form-qty").value = 1;
+        renderDraftPaketForm();
+    }
+
+    function hapusRincianFormPaket(idx) {
+        adminPaketItems.splice(idx, 1);
+        renderDraftPaketForm();
+    }
+
+    function simpanFormPaket() {
+        const nama   = document.getElementById("paket-form-nama").value.trim();
+        const target = parseInt(adminPaketUkuran);
+        const total  = adminPaketItems.reduce((s, it) => s + it.qty, 0);
+
+        if (!nama) { alert("Ketik nama paketnya dulu ya."); return; }
+        if (adminPaketItems.length === 0) { alert("Tambahkan minimal 1 rincian glaze & topping."); return; }
+        if (total !== target) { alert(`Total rincian harus tepat ${target} pcs (sekarang ${total} pcs).`); return; }
+
+        const ukuran    = adminPaketUkuran;
+        const list      = ukuran === '6' ? paketIsi6 : paketIsi3;
+        const fieldName = ukuran === '6' ? 'paket_isi6' : 'paket_isi3';
+
+        let listBaru;
+        if (adminPaketEditId) {
+            listBaru = list.map(p => p.id === adminPaketEditId ? { id: p.id, nama, items: [...adminPaketItems] } : p);
+        } else {
+            listBaru = [...list, { id: 'p' + Date.now(), nama, items: [...adminPaketItems] }];
+        }
+
+        db.collection("pengaturan").doc("menu").set({ [fieldName]: listBaru }, { merge: true })
+        .then(() => {
+            if (ukuran === '6') paketIsi6 = listBaru; else paketIsi3 = listBaru;
+            renderPaketAdminList();
+            tutupFormPaket();
+            alert("✅ Paket berhasil disimpan!");
+        })
+        .catch((err) => alert("⚠️ Gagal menyimpan paket!\n" + err.message));
+    }
+
+    function hapusPaketAdmin(ukuran, id) {
+        if (!confirm("Yakin ingin menghapus paket ini?")) return;
+        const list      = ukuran === '6' ? paketIsi6 : paketIsi3;
+        const fieldName = ukuran === '6' ? 'paket_isi6' : 'paket_isi3';
+        const listBaru  = list.filter(p => p.id !== id);
+
+        db.collection("pengaturan").doc("menu").set({ [fieldName]: listBaru }, { merge: true })
+        .then(() => {
+            if (ukuran === '6') paketIsi6 = listBaru; else paketIsi3 = listBaru;
+            renderPaketAdminList();
+        })
+        .catch((err) => alert("⚠️ Gagal menghapus paket!\n" + err.message));
+    }
+
     // ---- Admin: Bulk Actions ----
     function toggleCentangSemua() {
         const all = document.getElementById("check-all").checked;
@@ -1803,7 +2267,8 @@
             if (p.jenis_donat) html += `<p style="margin:2px 0;font-weight:bold;">Jenis: ${p.jenis_donat}</p>`;
             html += `<hr style="border-top:1px dashed black;margin:5px 0;">`;
             p.detail_varian.forEach(v => {
-                html += `<div style="margin-bottom:5px;"><span style="display:block;font-weight:bold;">${v.qty}x Donat</span><span style="display:block;padding-left:10px;font-size:11px;">- Glaze: ${v.glaze}</span><span style="display:block;padding-left:10px;font-size:11px;">- Topping: ${v.topping}</span></div>`;
+                const labelPaket = v.paketLabel ? `<span style="display:block;padding-left:10px;font-size:10px;font-weight:bold;">(📦 ${v.paketLabel})</span>` : "";
+                html += `<div style="margin-bottom:5px;"><span style="display:block;font-weight:bold;">${v.qty}x Donat</span><span style="display:block;padding-left:10px;font-size:11px;">- Glaze: ${v.glaze}</span><span style="display:block;padding-left:10px;font-size:11px;">- Topping: ${v.topping}</span>${labelPaket}</div>`;
             });
             html += `<hr style="border-top:1px dashed black;margin:5px 0;">
                 <p style="margin:5px 0;text-align:right;font-size:12px;">TOTAL QTY: ${p.total_qty} Pcs</p>`;
