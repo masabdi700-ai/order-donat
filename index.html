@@ -1648,6 +1648,13 @@
         if (!isValidNoWA(waRaw)) { alert("Format nomor WA sepertinya belum benar.\nContoh yang benar: 0812xxxxxxx atau 62812xxxxxxx"); return; }
         const wa = normalisasiNoWA(waRaw);
 
+        // [FIX] Buka tab kosong SEKARANG JUGA, sinkron, sebelum ada 'await' apa pun.
+        // Ini detik yang sama dengan klik tombol, jadi browser (termasuk Safari/iOS &
+        // browser bawaan WA/IG/FB yang lebih strict) pasti anggap ini hasil klik langsung
+        // dan tidak akan memblokirnya — tidak peduli berapa lama proses simpan di bawah ini.
+        // Alamatnya baru diisi setelah proses simpan selesai.
+        const waWindow = window.open('', '_blank');
+
         const btnKirim = document.getElementById("btn-kirim");
         btnKirim.disabled = true;
         btnKirim.textContent = "Memproses...";
@@ -1701,9 +1708,17 @@
             document.querySelectorAll('.donat-type-card').forEach(c => c.classList.remove('active'));
 
             setStep("success"); // layar sukses tetap tampil di tab ini, nomor PO tetap kebaca
-            window.open(urlWATersimpan, "_blank"); // WA terbuka otomatis di tab baru — tidak perlu klik lagi
+
+            // Isi alamat ke tab yg sudah dibuka duluan tadi. Kalau entah kenapa tab itu
+            // gagal terbuka dari awal (jarang), coba lagi sebagai fallback terakhir.
+            if (waWindow && !waWindow.closed) {
+                waWindow.location.href = urlWATersimpan;
+            } else {
+                window.open(urlWATersimpan, "_blank");
+            }
 
         } catch (err) {
+            if (waWindow && !waWindow.closed) waWindow.close(); // order gagal -> tutup tab kosong yg sudah dibuka
             alert("Gagal memproses pesanan!\n\nError: " + err.message);
         } finally {
             btnKirim.disabled = false;
