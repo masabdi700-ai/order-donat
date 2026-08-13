@@ -1028,11 +1028,13 @@
             paketIsi3     = doc.data().paket_isi3 || [];
             paketIsi6     = doc.data().paket_isi6 || [];
         } else {
+            // [FIX - keamanan data] SENGAJA tidak lagi menulis dokumen ini ke Firestore di sini.
+            // Sebelumnya, siapa pun yang membuka halaman (termasuk pelanggan biasa) bisa
+            // diam-diam MEMBUAT/MENIMPA pengaturan asli hanya karena pembacaan sempat
+            // mengembalikan "tidak ada". Sekarang cukup tampilkan default di layar;
+            // yang benar-benar menyimpan ke Firestore hanya admin lewat tombol Simpan.
             listGlazes = defaultGlazes; listToppings = defaultToppings;
-            db.collection("pengaturan").doc("menu").set(
-                { glazes: listGlazes, toppings: listToppings, nomor_wa: nomorWAAdmin, harga_dus: hargaDusDasar, paket_isi3: [], paket_isi6: [] },
-                { merge: true }
-            );
+            console.warn("[Pengaturan] Dokumen 'pengaturan/menu' tidak ditemukan — menampilkan nilai default TANPA menyimpannya ke Firestore.");
         }
         renderVisualCards();
         muatManajemenMenu();
@@ -1053,6 +1055,7 @@
         if (doc.exists) {
             infoPelanggan = doc.data();
         } else {
+            // [FIX - keamanan data] tidak lagi auto-menulis, sama seperti fix di 'menu' di atas.
             infoPelanggan = {
                 status_po: "buka",
                 jam_batas: "20.00 WIB",
@@ -1060,7 +1063,7 @@
                 info_tambahan: "Hubungi admin untuk konfirmasi jadwal pengambilan.",
                 pesan_tutup: "PO sedang tutup. Nantikan info pembukaan PO berikutnya!"
             };
-            db.collection("pengaturan").doc("info").set(infoPelanggan, { merge: true });
+            console.warn("[Pengaturan] Dokumen 'pengaturan/info' tidak ditemukan — menampilkan nilai default TANPA menyimpannya ke Firestore.");
         }
         updateInfoPelanggan(infoPelanggan);
         updateAdminInfoForm(infoPelanggan);
@@ -1079,8 +1082,9 @@
         if (doc.exists) {
             listBahan = doc.data().list || [];
         } else {
+            // [FIX - keamanan data] tidak lagi auto-menulis, sama seperti fix di 'menu' & 'info' di atas.
             listBahan = defaultBahan.map(nama => ({ nama, status: "masih" }));
-            db.collection("pengaturan").doc("bahan").set({ list: listBahan }, { merge: true });
+            console.warn("[Pengaturan] Dokumen 'pengaturan/bahan' tidak ditemukan — menampilkan nilai default TANPA menyimpannya ke Firestore.");
         }
         renderTabelBahan();
     });
@@ -2071,7 +2075,7 @@
         if (!no || !no.startsWith("62")) { alert("Nomor WA tidak valid! Harus diawali 62 (Contoh: 62812...)."); return; }
         if (isNaN(harga) || harga < 100) { alert("Masukkan nominal harga dasar yang valid!"); return; }
         if (confirm(`Simpan Nomor WA ke ${no} dan Harga Dasar ke ${formatRp(harga)}?`)) {
-            db.collection("pengaturan").doc("menu").update({ nomor_wa: no, harga_dus: harga })
+            db.collection("pengaturan").doc("menu").set({ nomor_wa: no, harga_dus: harga }, { merge: true })
             .then(() => alert("Pengaturan Bisnis berhasil diupdate!"))
             .catch(() => alert("Gagal menyimpan pengaturan."));
         }
@@ -2104,7 +2108,7 @@
         }
         muatManajemenMenu();
         renderVisualCards();
-        db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings })
+        db.collection("pengaturan").doc("menu").set({ glazes: listGlazes, toppings: listToppings }, { merge: true })
         .catch((err) => {
             alert("⚠️ Gagal menyimpan ke server!\n" + err.message + "\n\nPeriksa Firestore Security Rules.");
             if (type === "glaze") { const i = listGlazes.lastIndexOf(newItem); if (i > -1) listGlazes.splice(i, 1); }
@@ -2120,7 +2124,7 @@
         else                    { removed = listToppings.splice(index, 1)[0]; }
         muatManajemenMenu();
         renderVisualCards();
-        db.collection("pengaturan").doc("menu").update({ glazes: listGlazes, toppings: listToppings })
+        db.collection("pengaturan").doc("menu").set({ glazes: listGlazes, toppings: listToppings }, { merge: true })
         .catch((err) => {
             alert("⚠️ Gagal menghapus! " + err.message);
             if (type === "glaze") listGlazes.splice(index, 0, removed);
